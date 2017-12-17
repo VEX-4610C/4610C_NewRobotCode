@@ -27,8 +27,8 @@
 #define sign(x) (x < 0 ? -1 : 1)
 #define toggle(x) (1 - x)
 #include "Vex_Competition_Includes.c"
-#include "SmartMotorLib.c"
-#include "bciPIDLib.c"
+#include "zSmartMotorLib.c"
+#include "zBCIPIDLib.c"
 
 //CONFIG PARAMETERS
 int doubleDown = 0;

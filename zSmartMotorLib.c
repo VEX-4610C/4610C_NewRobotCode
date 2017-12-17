@@ -1383,7 +1383,7 @@ SmartMotorCurrent( smartMotor *m, float v_battery  )
     v_bemf  = m->ke_motor * m->rpm;
 
     // new - clip v_bemf, stops issues if motor runs faster than rpm_free
-    if( abs(v_bemf) > m->v_bemf_max )
+    if( fabs(v_bemf) > m->v_bemf_max )
         v_bemf = sgn(v_bemf) * m->v_bemf_max;
 
     // Calculate staady state current for on and off pwm phases
