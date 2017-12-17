@@ -29,236 +29,10 @@
 #include "Vex_Competition_Includes.c"
 #include "zSmartMotorLib.c"
 #include "zBCIPIDLib.c"
+#include "zAutonomousFunctions.c"
+#include "zAutonomousRoutines.c"
 
-//CONFIG PARAMETERS
-int doubleDown = 0;
-int doubleUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-int doublePreload = 100;
-int doubleSetpoint = doubleDown;
-int doubleKP = 25, doubleKI = 0, doubleKD = 7, doubleDIVISOR = 100;
-int doubleDone = 0;
-int doubleStackLoader = 0;
-int doublePIDActive = 1;
-
-int mobileGoalDown = 1750;
-int mobileGoalUp = 0;
-int mobileGoalSetpoint = mobileGoalUp;
-int mobileKP = 25, mobileKI = 0, mobileKD = 7, mobileDIVISOR = 100;
-int mobileDone = 0;
-int mobilePIDActive = 1;
-
-int chainBarUp = 0;
-int chainBarDown = 2000;
-int chainBarSetpoint = chainBarUp;
-int chainBarKP = 25, chainBarKI = 0, chainBarKD = 7, chainBarDIVISOR = 100;
-int chainBarDone = 0;
-int chainBarPIDActive = 1;
-
-int clawOpen = 0;
-int clawClosed = 2000;
-int clawSetpoint = clawOpen;
-int clawKP = 25, clawKI = 0, clawKD = 7, clawDIVISOR = 100;
-int clawDone = 0;
-int clawPIDActive = 1;
-
-int activateAutoStacker = 0;
-int currentStacked = 0;
-
-task WATCHDOG
-{
-	int doubleStartTimer, doubleEndTime;
-	int mobileStartTimer, mobileEndTime;
-	int chainBarStartTimer, chainBarEndTime;
-	int clawStartTimer, clawEndTime;
-	// DR4B PID Controller
-	pos_PID doublePID;
-	pos_PID_InitController(&doublePID, doubleRight, doubleKP, doubleKI, doubleKD);
-	// Chain Bar PID Controller
-	pos_PID chainbarPID;
-	pos_PID_InitController(&chainbarPID, chainbar, chainBarKP, chainBarKI, chainBarKD);
-	// Mobile Goal PID Controller
-	pos_PID mobilePID;
-	pos_PID_InitController(&mobilePID, mobileGoal, mobileKP, mobileKI, mobileKD);
-	// Claw PID Controller
-	pos_PID clawPIDController;
-	pos_PID_InitController(&clawPIDController, clawPot, clawKP, clawKI, clawKD);
-
-	while(1)
-	{
-		pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
-		pos_PID_SetTargetPosition(&chainbarPID, chainBarSetpoint);
-		pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
-		pos_PID_SetTargetPosition(&clawPIDController, clawSetpoint);
-		if(doublePIDActive)
-		{
-			SetMotor(doubleRight, pos_PID_StepController(&doublePID) / doubleDIVISOR);
-			SetMotor(doubleLeft, pos_PID_StepController(&doublePID) / doubleDIVISOR);
-		}
-		if(chainBarPIDActive)
-		{
-			SetMotor(chainbar, pos_PID_StepController(&chainbarPID) / chainBarDIVISOR);
-		}
-		if(mobilePIDActive)
-		{
-			SetMotor(mobileGoal, pos_PID_StepController(&mobilePID) / mobileDIVISOR);
-		}
-		if(clawPIDActive)
-		{
-			SetMotor(claw, pos_PID_StepController(&clawPIDController) / clawDIVISOR);
-		}
-		// Dones
-		if(abs(pos_PID_GetError(&doublePID)) < 50)
-		{
-			if(doubleStartTimer == 0)
-				doubleEndTime = time10[T1] + 75;
-			doubleStartTimer = 1;
-		}
-		else
-		{
-			doubleStartTimer = 0;
-		}
-		if(doubleStartTimer && time10[T1] > doubleEndTime)
-		{
-			doubleDone = 1;
-		}
-		else
-		{
-			doubleDone = 0;
-		}
-		if(abs(pos_PID_GetError(&mobilePID)) < 50)
-		{
-			if(mobileStartTimer == 0)
-				mobileEndTime = time10[T1] + 75;
-			mobileStartTimer = 1;
-		}
-		else
-		{
-			mobileStartTimer = 0;
-		}
-		if(mobileStartTimer && time10[T1] > mobileEndTime)
-		{
-			mobileDone = 1;
-		}
-		else
-		{
-			mobileDone = 0;
-		}
-		if(abs(pos_PID_GetError(&chainbarPID)) < 50)
-		{
-			if(chainBarStartTimer == 0)
-				chainBarEndTime = time10[T1] + 75;
-			chainBarStartTimer = 1;
-		}
-		else
-		{
-			chainBarStartTimer = 0;
-		}
-		if(chainBarStartTimer && time10[T1] > chainBarEndTime)
-		{
-			chainBarDone = 1;
-		}
-		else
-		{
-			chainBarDone = 0;
-		}
-		if(abs(pos_PID_GetError(&clawPIDController)) < 50)
-		{
-			if(clawStartTimer == 0)
-				clawEndTime = time10[T1] + 75;
-			clawStartTimer = 1;
-		}
-		else
-		{
-			clawStartTimer = 0;
-		}
-		if(clawStartTimer && time10[T1] > clawEndTime)
-		{
-			clawDone = 1;
-		}
-		else
-		{
-			clawDone = 0;
-		}
-		wait1Msec(25);
-	}
-}
-task autoStacker
-{
-	int innerState = 0;
-	int lastAutostacker = 0;
-	/* ORDER OF ACTIONS:
-	1. Close Claw
-	2. Lift DR4B
-	3. Lift Chainbar
-	4. Open Claw
-	5. Lower Chainbar
-	6. Lower DR4B
-	*/
-	while(1)
-	{
-		if(activateAutoStacker && !lastAutostacker)
-		{
-			innerState = 0;
-		}
-		if(activateAutoStacker)
-		{
-			if(innerState == 0)
-			{
-				clawSetpoint = clawClosed;
-				innerState++;
-			}
-			else if(innerState == 1)
-			{
-				if(clawDone)
-				{
-					doubleSetpoint = doubleUp[currentStacked];
-					innerState++;
-				}
-			}
-			else if(innerState == 2)
-			{
-				if(doubleDone)
-				{
-					chainBarSetpoint = chainBarUp;
-					innerState++;
-				}
-			}
-			else if(innerState == 3)
-			{
-				if(chainBarDone)
-				{
-					clawSetpoint = clawOpen;
-					innerState++;
-				}
-			}
-			else if(innerState == 4)
-			{
-				if(clawDone)
-				{
-					chainBarSetpoint = chainBarDown;
-					innerState++;
-				}
-			}
-			else if(innerState == 5)
-			{
-				if(chainBarDone)
-				{
-					doubleSetpoint = doubleDown;
-					innerState++;
-				}
-			}
-			else if(innerState == 6)
-			{
-				if(doubleDone)
-				{
-					currentStacked ++;
-					activateAutoStacker = 0;
-					innerState = 0;
-				}
-			}
-		}
-	}
-}
+int RUNTEST = 0, TEST = 0; // Manual Autonomous Test Controls
 void pre_auton()
 {
 	SmartMotorsInit();
@@ -272,13 +46,20 @@ void pre_auton()
 	SmartMotorSetControllerStatusLed( SMLIB_CORTEX_PORT_1, powerBLED);
 	SmartMotorSetControllerStatusLed( SMLIB_PWREXP_PORT_0, powerCLED);
 	bStopTasksBetweenModes = true;
+	if(!RUNTEST)
+		LcdAutonomousSelection();
 }
+
 
 task autonomous()
 {
 	SmartMotorRun();
-	startTask(WATCHDOG);
-	AutonomousCodePlaceholderForTesting();
+	if(RUNTEST == 1 && TEST == 0)
+		testDegmove();
+	if(RUNTEST == 1 && TEST == 1)
+		testSmallGyroturn();
+	if(RUNTEST == 1 && TEST == 2)
+		testLargeGyroturn();
 }
 
 task usercontrol()
