@@ -287,7 +287,6 @@ int pidActive = 1;
 
 task WATCHDOG
 {
-	const int HOLDOUT = 75;
 	int doubleStartTimer, doubleEndTime;
 	int mobileStartTimer, mobileEndTime;
 	int chainBarStartTimer, chainBarEndTime;
