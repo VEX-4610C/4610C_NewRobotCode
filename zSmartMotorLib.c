@@ -1426,7 +1426,7 @@ SmartMotorCurrent( smartMotor *m, float v_battery  )
     m->filtered_current = (m->filtered_current * 0.8) + (i_bar * 0.2);
 
     // peak current - probably not useful
-    if( abs(m->current) > m->peak_current )
+    if( fabs(m->current) > m->peak_current )
         m->peak_current = abs(m->current);
 
     return i_bar;

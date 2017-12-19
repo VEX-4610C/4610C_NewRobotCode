@@ -24,8 +24,13 @@
 
 #pragma platform(VEX2)
 #pragma competitionControl(Competition)
-#define sign(x) (x < 0 ? -1 : 1)
-#define toggle(x) (1 - x)
+// Sign is a ternary statment
+#define sign(x) ((x) < 0 ? -1 : 1)
+// toggle -- 1 -> (1-1)=0;  0 -> (1-0)=1
+#define toggle(x) (1 - (x))
+#define min(x,y) ((x) > (y) ? (y) : (x))
+#define max(x,y) ((x) > (y) ? (x) : (y))
+#define resetButton (vexRT[Btn7R])
 #include "Vex_Competition_Includes.c"
 #include "zSmartMotorLib.c"
 #include "zBCIPIDLib.c"
@@ -67,7 +72,7 @@ task usercontrol()
 	startTask(WATCHDOG);
 	startTask(autoStacker);
 	SmartMotorRun();
-
+	int EMERGENCY_MODE = 0;
 	int left = 0, right = 0, reverseDrive = 0;
 	int lastManualMobileGoal = 0;
 	int lastManualLift = 0;
@@ -95,14 +100,30 @@ task usercontrol()
 			reverseDrive = toggle(reverseDrive);
 		}
 
+		if(vexRT[Btn7LXmtr2] || vexRT[Btn7RXmtr2] || vexRT[Btn7DXmtr2] || vexRT[Btn7UXmtr2] || vexRT[Btn8L])
+		{
+			while(vexRT[Btn7LXmtr2] || vexRT[Btn7RXmtr2] || vexRT[Btn7DXmtr2] || vexRT[Btn7UXmtr2] || vexRT[Btn8L]) { wait1Msec(20); }
+			EMERGENCY_MODE = toggle(EMERGENCY_MODE);
+		}
+		if(EMERGENCY_MODE)
+		{
+			pidActive = 0;
+			activateAutoStacker = 0;
+		}
+		else
+		{
+			pidActive = 1;
+		}
+		if(resetButton)
+			;
 		// Mobile Goal
-		if(vexRT[Btn5DXmtr2] || vexRT[Btn5UXmtr2])
+		if(EMERGENCY_MODE && vexRT[Btn5D])
 		{
 			mobilePIDActive = 0;
 			lastManualMobileGoal = 1;
 			SetMotor(mobileGoal, 127);
 		}
-		else if(vexRT[Btn6DXmtr2] || vexRT[Btn6UXmtr2])
+		else if(EMERGENCY_MODE && vexRT[Btn6DXmtr2])
 		{
 			mobilePIDActive = 0;
 			lastManualMobileGoal = 1;
@@ -129,14 +150,25 @@ task usercontrol()
 			while(vexRT[Btn8L]) { wait1Msec(20); }
 			doubleStackLoader = toggle(doubleStackLoader); // 0 -> 1-0 = 1 ; 1 -> 1-1 = 0 -- Toggle Shorthand
 		}
-		if(vexRT[Btn7L])
+
+		if(EMERGENCY_MODE && vexRT[Btn5U])
+		{
+			SetMotor(doubleLeft, -65);
+			SetMotor(doubleRight, -65);
+		}
+		else if(EMERGENCY_MODE && vexRT[Btn6U])
+		{
+			SetMotor(doubleLeft, 65);
+			SetMotor(doubleRight, 65);
+		}
+		else if(!EMERGENCY_MODE && vexRT[Btn7L])
 		{
 			doublePIDActive = 0;
 			SetMotor(doubleLeft, -65);
 			SetMotor(doubleRight, -65);
 			lastManualLift = 1;
 		}
-		else if(vexRT[Btn8R])
+		else if(!EMERGENCY_MODE && vexRT[Btn8R])
 		{
 			doublePIDActive = 0;
 			SetMotor(doubleLeft, 65);
@@ -156,15 +188,23 @@ task usercontrol()
 		else
 		{
 			doublePIDActive = 1;
-			if(doubleStackLoader)
+			if(doubleStackLoader && mobileDone)
 			{
 				doubleSetpoint = doublePreload;
 			}
-			else
+			else if(mobileDone)
 			{
 				doubleSetpoint = doubleDown;
 			}
 		}
+
+		// Chainbar
+		if(EMERGENCY_MODE && vexRT[Btn7L]) // Up
+			;
+	  else if(EMERGENCY_MODE && vexRT[Btn8R]) // Down
+	  	;
+	 	else if(!activateAutoStacker && mobileDone)
+	 		;
 		// Claw
 		if(vexRT[Btn5D])
 		{
