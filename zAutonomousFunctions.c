@@ -243,17 +243,13 @@ void gyroturn(int degs)
 //CONFIG PARAMETERS
 #define doubleDown 0
 #define doublePreload 100
+#define doubleMobileGoal 25
 #define doubleKP 25
 #define doubleKI 0
-#define doublekD 7
+#define doubleKD 7
 #define doubleDIVISOR 100
 const int doubleUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int doubleSetpoint = doubleDown;
-<<<<<<< HEAD
-int doubleMobileGoal = 25;
-int doubleKP = 25, doubleKI = 0, doubleKD = 7, doubleDIVISOR = 100;
-=======
->>>>>>> 82c75b9e38050d4d59a5bac07c0ee40cbb95e341
 int doubleDone = 0;
 int doubleStackLoader = 0;
 int doublePIDActive = 1;
