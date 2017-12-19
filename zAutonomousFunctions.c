@@ -241,8 +241,6 @@ void gyroturn(int degs)
 
 
 //CONFIG PARAMETERS
-int doubleDown = 0;
-int doubleUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int doublePreload = 100;
 int doubleSetpoint = doubleDown;
 <<<<<<< HEAD
