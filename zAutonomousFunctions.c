@@ -245,14 +245,18 @@ int doubleDown = 0;
 int doubleUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int doublePreload = 100;
 int doubleSetpoint = doubleDown;
+<<<<<<< HEAD
 int doubleMobileGoal = 25;
 int doubleKP = 25, doubleKI = 0, doubleKD = 7, doubleDIVISOR = 100;
+=======
+>>>>>>> 82c75b9e38050d4d59a5bac07c0ee40cbb95e341
 int doubleDone = 0;
 int doubleStackLoader = 0;
 int doublePIDActive = 1;
 
 int mobileGoalDown = 1750;
 int mobileGoalUp = 0;
+#define mobileKD 7
 int mobileGoalSetpoint = mobileGoalUp;
 int mobileKP = 25, mobileKI = 0, mobileKD = 7, mobileDIVISOR = 100;
 int mobileDone = 0;
@@ -261,8 +265,11 @@ int mobilePIDActive = 1;
 int chainBarUp = 0;
 int chainBarDown = 2000;
 int chainBarSetpoint = chainBarUp;
+<<<<<<< HEAD
 int chainBarMobileGoal = 1000;
 int chainBarKP = 25, chainBarKI = 0, chainBarKD = 7, chainBarDIVISOR = 100;
+=======
+>>>>>>> 82c75b9e38050d4d59a5bac07c0ee40cbb95e341
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
 
