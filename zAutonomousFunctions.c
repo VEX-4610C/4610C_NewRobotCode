@@ -241,7 +241,13 @@ void gyroturn(int degs)
 
 
 //CONFIG PARAMETERS
-int doublePreload = 100;
+#define doubleDown 0
+#define doublePreload 100
+#define doubleKP 25
+#define doubleKI 0
+#define doublekD 7
+#define doubleDIVISOR 100
+const int doubleUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int doubleSetpoint = doubleDown;
 <<<<<<< HEAD
 int doubleMobileGoal = 25;
@@ -252,29 +258,34 @@ int doubleDone = 0;
 int doubleStackLoader = 0;
 int doublePIDActive = 1;
 
-int mobileGoalDown = 1750;
-int mobileGoalUp = 0;
+#define mobileGoalDown 1750
+#define mobileGoalUp 0
+#define mobileKP 25
+#define mobileKI 0
 #define mobileKD 7
+#define mobileDIVISOR 100
 int mobileGoalSetpoint = mobileGoalUp;
-int mobileKP = 25, mobileKI = 0, mobileKD = 7, mobileDIVISOR = 100;
 int mobileDone = 0;
 int mobilePIDActive = 1;
 
-int chainBarUp = 0;
-int chainBarDown = 2000;
+#define chainBarUp 0
+#define chainBarDown 2000
+#define chainBarMobileGoal 1000
+#define chainBarKP 25
+#define chainBarKI 0
+#define chainBarKD 7
+#define chainBarDIVISOR 100
 int chainBarSetpoint = chainBarUp;
-<<<<<<< HEAD
-int chainBarMobileGoal = 1000;
-int chainBarKP = 25, chainBarKI = 0, chainBarKD = 7, chainBarDIVISOR = 100;
-=======
->>>>>>> 82c75b9e38050d4d59a5bac07c0ee40cbb95e341
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
 
-int clawOpen = 0;
-int clawClosed = 2000;
+#define clawOpen 0
+#define clawClosed 2000
+#define clawKP 25
+#define clawKI 0
+#define clawKD 7
+#define clawDIVISOR 100
 int clawSetpoint = clawOpen;
-int clawKP = 25, clawKI = 0, clawKD = 7, clawDIVISOR = 100;
 int clawDone = 0;
 int clawPIDActive = 1;
 
@@ -282,6 +293,7 @@ int activateAutoStacker = 0;
 int currentStacked = 0;
 int pidActive = 1;
 
+#define HOLDOUT 75
 
 task WATCHDOG
 {
