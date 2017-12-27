@@ -1,3 +1,286 @@
+//CONFIG PARAMETERS
+#define doubleDown 0
+#define doublePreload 100
+#define doubleMobileGoal 25
+#define doubleKP 25
+#define doubleKI 0
+#define doubleKD 7
+#define doubleDIVISOR 100
+const int doubleUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+int doubleSetpoint = doubleDown;
+int doubleDone = 0;
+int doubleStackLoader = 0;
+int doublePIDActive = 1;
+
+#define mobileGoalDown 1750
+#define mobileGoalUp 0
+#define mobileKP 25
+#define mobileKI 0
+#define mobileKD 7
+#define mobileDIVISOR 100
+int mobileGoalSetpoint = mobileGoalUp;
+int mobileDone = 0;
+int mobilePIDActive = 1;
+
+#define chainBarUp 0
+#define chainBarDown 2000
+#define chainBarMobileGoal 1000
+#define chainBarKP 25
+#define chainBarKI 0
+#define chainBarKD 7
+#define chainBarDIVISOR 100
+int chainBarSetpoint = chainBarUp;
+int chainBarDone = 0;
+int chainBarPIDActive = 1;
+
+#define clawOpen 0
+#define clawClosed 2000
+#define clawKP 25
+#define clawKI 0
+#define clawKD 7
+#define clawDIVISOR 100
+int clawSetpoint = clawOpen;
+int clawDone = 0;
+int clawPIDActive = 1;
+
+int activateAutoStacker = 0;
+int currentStacked = 0;
+int pidActive = 1;
+
+#define HOLDOUT 75
+
+task WATCHDOG
+{
+	int doubleStartTimer, doubleEndTime;
+	int mobileStartTimer, mobileEndTime;
+	int chainBarStartTimer, chainBarEndTime;
+	int clawStartTimer, clawEndTime;
+	// DR4B PID Controller
+	pos_PID doublePID;
+	pos_PID_InitController(&doublePID, doubleRight, doubleKP, doubleKI, doubleKD);
+	// Chain Bar PID Controller
+	pos_PID chainbarPID;
+	pos_PID_InitController(&chainbarPID, chainbar, chainBarKP, chainBarKI, chainBarKD);
+	// Mobile Goal PID Controller
+	pos_PID mobilePID;
+	pos_PID_InitController(&mobilePID, mobileGoal, mobileKP, mobileKI, mobileKD);
+	// Claw PID Controller
+	pos_PID clawPIDController;
+	pos_PID_InitController(&clawPIDController, clawPot, clawKP, clawKI, clawKD);
+
+	while(1)
+	{
+		if(pidActive)
+		{
+			pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
+			pos_PID_SetTargetPosition(&chainbarPID, chainBarSetpoint);
+			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
+			pos_PID_SetTargetPosition(&clawPIDController, clawSetpoint);
+			int mobileGoalPower = pos_PID_StepController(&mobilePID);
+			if(mobileGoalPower > 15)
+			{
+				doubleSetpoint =  max(doubleSetpoint, doubleMobileGoal);
+				pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
+				pos_PID_SetTargetPosition(&chainbarPID, chainBarMobileGoal);
+				if(abs(pos_PID_GetError(&doublePID)) > 25 || abs(pos_PID_GetError(&chainbarPID)) > 25)
+					mobileGoalPower = 0;
+			}
+			if(doublePIDActive)
+			{
+				SetMotor(doubleRight, pos_PID_StepController(&doublePID) / doubleDIVISOR);
+				SetMotor(doubleLeft, pos_PID_StepController(&doublePID) / doubleDIVISOR);
+			}
+			if(chainBarPIDActive)
+			{
+				SetMotor(chainbar, pos_PID_StepController(&chainbarPID) / chainBarDIVISOR);
+			}
+			if(mobilePIDActive)
+			{
+				SetMotor(mobileGoal,  mobileGoalPower / mobileDIVISOR);
+			}
+			if(clawPIDActive)
+			{
+				SetMotor(claw, pos_PID_StepController(&clawPIDController) / clawDIVISOR);
+			}
+			// Dones
+			if(abs(pos_PID_GetError(&doublePID)) < 50)
+			{
+				if(doubleStartTimer == 0)
+					doubleEndTime = time10[T1] + HOLDOUT;
+				doubleStartTimer = 1;
+			}
+			else
+			{
+				doubleStartTimer = 0;
+			}
+			if(doubleStartTimer && time10[T1] > doubleEndTime)
+			{
+				doubleDone = 1;
+			}
+			else
+			{
+				doubleDone = 0;
+			}
+			if(abs(pos_PID_GetError(&mobilePID)) < 50)
+			{
+				if(mobileStartTimer == 0)
+					mobileEndTime = time10[T1] + HOLDOUT;
+				mobileStartTimer = 1;
+			}
+			else
+			{
+				mobileStartTimer = 0;
+			}
+			if(mobileStartTimer && time10[T1] > mobileEndTime)
+			{
+				mobileDone = 1;
+			}
+			else
+			{
+				mobileDone = 0;
+			}
+			if(abs(pos_PID_GetError(&chainbarPID)) < 50)
+			{
+				if(chainBarStartTimer == 0)
+					chainBarEndTime = time10[T1] + HOLDOUT;
+				chainBarStartTimer = 1;
+			}
+			else
+			{
+				chainBarStartTimer = 0;
+			}
+			if(chainBarStartTimer && time10[T1] > chainBarEndTime)
+			{
+				chainBarDone = 1;
+			}
+			else
+			{
+				chainBarDone = 0;
+			}
+			if(abs(pos_PID_GetError(&clawPIDController)) < 50)
+			{
+				if(clawStartTimer == 0)
+					clawEndTime = time10[T1] + HOLDOUT;
+				clawStartTimer = 1;
+			}
+			else
+			{
+				clawStartTimer = 0;
+			}
+			if(clawStartTimer && time10[T1] > clawEndTime)
+			{
+				clawDone = 1;
+			}
+			else
+			{
+				clawDone = 0;
+			}
+			wait1Msec(25);
+		}
+	}
+}
+task autoStacker
+{
+	int innerState = 0;
+	int lastAutostacker = 0;
+	/* ORDER OF ACTIONS:
+	1. Close Claw
+	2. Lift DR4B
+	3. Lift Chainbar
+	4. Open Claw
+	5. Lower Chainbar
+	6. Lower DR4B
+	*/
+	while(1)
+	{
+		if(activateAutoStacker && !lastAutostacker)
+		{
+			innerState = 0;
+		}
+		if(activateAutoStacker && mobileDone)
+		{
+			if(innerState == 0)
+			{
+				clawSetpoint = clawClosed;
+				innerState++;
+			}
+			else if(innerState == 1)
+			{
+				if(clawDone)
+				{
+					doubleSetpoint = doubleUp[currentStacked];
+					innerState++;
+				}
+				else
+				{
+					clawSetpoint = clawClosed;
+				}
+			}
+			else if(innerState == 2)
+			{
+				if(doubleDone || doubleUp[currentStacked] == 0)
+				{
+					chainBarSetpoint = chainBarUp;
+					innerState++;
+				}
+				else
+				{
+					doubleSetpoint = doubleUp[currentStacked];
+				}
+			}
+			else if(innerState == 3)
+			{
+				if(chainBarDone)
+				{
+					clawSetpoint = clawOpen;
+					innerState++;
+				}
+				else
+				{
+					chainBarSetpoint = chainBarUp;
+				}
+			}
+			else if(innerState == 4)
+			{
+				if(clawDone)
+				{
+					chainBarSetpoint = chainBarDown;
+					innerState++;
+				}
+				else
+				{
+					clawSetpoint = clawOpen;
+				}
+			}
+			else if(innerState == 5)
+			{
+				if(chainBarDone)
+				{
+					doubleSetpoint = doubleStackLoader ? doubleStackLoader : doubleDown;
+					innerState++;
+				}
+				else
+				{
+					chainBarSetpoint = chainBarDown;
+				}
+			}
+			else if(innerState == 6)
+			{
+				if(doubleDone)
+				{
+					currentStacked ++;
+					activateAutoStacker = 0;
+					innerState = 0;
+				}
+				else
+				{
+					doubleSetpoint = doubleStackLoader ? doubleStackLoader : doubleDown;
+				}
+			}
+		}
+	}
+}
+
 // LCD Display Code
 // Some utility strings
 #define LEFT_ARROW  247
@@ -235,268 +518,6 @@ void gyroturn(int degs)
 		else
 		{
 			turnDone = 0;
-		}
-	}
-}
-
-
-//CONFIG PARAMETERS
-#define doubleDown 0
-#define doublePreload 100
-#define doubleMobileGoal 25
-#define doubleKP 25
-#define doubleKI 0
-#define doubleKD 7
-#define doubleDIVISOR 100
-const int doubleUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-int doubleSetpoint = doubleDown;
-int doubleDone = 0;
-int doubleStackLoader = 0;
-int doublePIDActive = 1;
-
-#define mobileGoalDown 1750
-#define mobileGoalUp 0
-#define mobileKP 25
-#define mobileKI 0
-#define mobileKD 7
-#define mobileDIVISOR 100
-int mobileGoalSetpoint = mobileGoalUp;
-int mobileDone = 0;
-int mobilePIDActive = 1;
-
-#define chainBarUp 0
-#define chainBarDown 2000
-#define chainBarMobileGoal 1000
-#define chainBarKP 25
-#define chainBarKI 0
-#define chainBarKD 7
-#define chainBarDIVISOR 100
-int chainBarSetpoint = chainBarUp;
-int chainBarDone = 0;
-int chainBarPIDActive = 1;
-
-#define clawOpen 0
-#define clawClosed 2000
-#define clawKP 25
-#define clawKI 0
-#define clawKD 7
-#define clawDIVISOR 100
-int clawSetpoint = clawOpen;
-int clawDone = 0;
-int clawPIDActive = 1;
-
-int activateAutoStacker = 0;
-int currentStacked = 0;
-int pidActive = 1;
-
-#define HOLDOUT 75
-
-task WATCHDOG
-{
-	int doubleStartTimer, doubleEndTime;
-	int mobileStartTimer, mobileEndTime;
-	int chainBarStartTimer, chainBarEndTime;
-	int clawStartTimer, clawEndTime;
-	// DR4B PID Controller
-	pos_PID doublePID;
-	pos_PID_InitController(&doublePID, doubleRight, doubleKP, doubleKI, doubleKD);
-	// Chain Bar PID Controller
-	pos_PID chainbarPID;
-	pos_PID_InitController(&chainbarPID, chainbar, chainBarKP, chainBarKI, chainBarKD);
-	// Mobile Goal PID Controller
-	pos_PID mobilePID;
-	pos_PID_InitController(&mobilePID, mobileGoal, mobileKP, mobileKI, mobileKD);
-	// Claw PID Controller
-	pos_PID clawPIDController;
-	pos_PID_InitController(&clawPIDController, clawPot, clawKP, clawKI, clawKD);
-
-	while(1)
-	{
-		if(pidActive)
-		{
-			pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
-			pos_PID_SetTargetPosition(&chainbarPID, chainBarSetpoint);
-			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
-			pos_PID_SetTargetPosition(&clawPIDController, clawSetpoint);
-			int mobileGoalPower = pos_PID_StepController(&mobilePID);
-			if(mobileGoalPower > 15
-				&& abs(nMotorEncoder[doubleRight] - doubleMobileGoal) < 50
-			&& abs(nMotorEncoder[chainbar] - chainBarMobileGoal) < 50)
-			{
-				doubleSetpoint =  max(doubleSetpoint, doubleMobileGoal);
-				chainBarSetpoint = min(chainBarSetpoint, chainBarMobileGoal);
-				pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
-				pos_PID_SetTargetPosition(&chainbarPID, chainBarSetpoint);
-				mobileGoalPower = 0;
-			}
-			if(doublePIDActive)
-			{
-				SetMotor(doubleRight, pos_PID_StepController(&doublePID) / doubleDIVISOR);
-				SetMotor(doubleLeft, pos_PID_StepController(&doublePID) / doubleDIVISOR);
-			}
-			if(chainBarPIDActive)
-			{
-				SetMotor(chainbar, pos_PID_StepController(&chainbarPID) / chainBarDIVISOR);
-			}
-			if(mobilePIDActive)
-			{
-				SetMotor(mobileGoal,  mobileGoalPower / mobileDIVISOR);
-			}
-			if(clawPIDActive)
-			{
-				SetMotor(claw, pos_PID_StepController(&clawPIDController) / clawDIVISOR);
-			}
-			// Dones
-			if(abs(pos_PID_GetError(&doublePID)) < 50)
-			{
-				if(doubleStartTimer == 0)
-					doubleEndTime = time10[T1] + HOLDOUT;
-				doubleStartTimer = 1;
-			}
-			else
-			{
-				doubleStartTimer = 0;
-			}
-			if(doubleStartTimer && time10[T1] > doubleEndTime)
-			{
-				doubleDone = 1;
-			}
-			else
-			{
-				doubleDone = 0;
-			}
-			if(abs(pos_PID_GetError(&mobilePID)) < 50)
-			{
-				if(mobileStartTimer == 0)
-					mobileEndTime = time10[T1] + HOLDOUT;
-				mobileStartTimer = 1;
-			}
-			else
-			{
-				mobileStartTimer = 0;
-			}
-			if(mobileStartTimer && time10[T1] > mobileEndTime)
-			{
-				mobileDone = 1;
-			}
-			else
-			{
-				mobileDone = 0;
-			}
-			if(abs(pos_PID_GetError(&chainbarPID)) < 50)
-			{
-				if(chainBarStartTimer == 0)
-					chainBarEndTime = time10[T1] + HOLDOUT;
-				chainBarStartTimer = 1;
-			}
-			else
-			{
-				chainBarStartTimer = 0;
-			}
-			if(chainBarStartTimer && time10[T1] > chainBarEndTime)
-			{
-				chainBarDone = 1;
-			}
-			else
-			{
-				chainBarDone = 0;
-			}
-			if(abs(pos_PID_GetError(&clawPIDController)) < 50)
-			{
-				if(clawStartTimer == 0)
-					clawEndTime = time10[T1] + HOLDOUT;
-				clawStartTimer = 1;
-			}
-			else
-			{
-				clawStartTimer = 0;
-			}
-			if(clawStartTimer && time10[T1] > clawEndTime)
-			{
-				clawDone = 1;
-			}
-			else
-			{
-				clawDone = 0;
-			}
-			wait1Msec(25);
-		}
-	}
-}
-task autoStacker
-{
-	int innerState = 0;
-	int lastAutostacker = 0;
-	/* ORDER OF ACTIONS:
-	1. Close Claw
-	2. Lift DR4B
-	3. Lift Chainbar
-	4. Open Claw
-	5. Lower Chainbar
-	6. Lower DR4B
-	*/
-	while(1)
-	{
-		if(activateAutoStacker && !lastAutostacker)
-		{
-			innerState = 0;
-		}
-		if(activateAutoStacker && mobileDone)
-		{
-			if(innerState == 0)
-			{
-				clawSetpoint = clawClosed;
-				innerState++;
-			}
-			else if(innerState == 1)
-			{
-				if(clawDone)
-				{
-					doubleSetpoint = doubleUp[currentStacked];
-					innerState++;
-				}
-			}
-			else if(innerState == 2)
-			{
-				if(doubleDone)
-				{
-					chainBarSetpoint = chainBarUp;
-					innerState++;
-				}
-			}
-			else if(innerState == 3)
-			{
-				if(chainBarDone)
-				{
-					clawSetpoint = clawOpen;
-					innerState++;
-				}
-			}
-			else if(innerState == 4)
-			{
-				if(clawDone)
-				{
-					chainBarSetpoint = chainBarDown;
-					innerState++;
-				}
-			}
-			else if(innerState == 5)
-			{
-				if(chainBarDone)
-				{
-					doubleSetpoint = doubleDown;
-					innerState++;
-				}
-			}
-			else if(innerState == 6)
-			{
-				if(doubleDone)
-				{
-					currentStacked ++;
-					activateAutoStacker = 0;
-					innerState = 0;
-				}
-			}
 		}
 	}
 }

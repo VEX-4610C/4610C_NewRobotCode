@@ -32,15 +32,17 @@
 #define max(x,y) ((x) > (y) ? (x) : (y))
 #define resetButton (vexRT[Btn7R])
 #include "Vex_Competition_Includes.c"
-#include "zSmartMotorLib.c"
+/* include "zSmartMotorLib.c" */
+#define SetMotor(x, y) (motor[(x)] = (y))
+#define SmartMotorRun() ;
 #include "zBCIPIDLib.c"
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 0, TEST = 0; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST = 0; // Manual Autonomous Test Controls
 void pre_auton()
 {
-	SmartMotorsInit();
+	/* SmartMotorsInit();
 	SmartMotorPtcMonitorEnable();
 	SmartMotorLinkMotors(frontLeft, backLeft);
 	SmartMotorLinkMotors(frontRight, backRight);
@@ -49,7 +51,7 @@ void pre_auton()
 	SmartMotorSetPowerExpanderStatusPort(PEStatus);
 	SmartMotorSetControllerStatusLed( SMLIB_CORTEX_PORT_0, powerALED);
 	SmartMotorSetControllerStatusLed( SMLIB_CORTEX_PORT_1, powerBLED);
-	SmartMotorSetControllerStatusLed( SMLIB_PWREXP_PORT_0, powerCLED);
+	SmartMotorSetControllerStatusLed( SMLIB_PWREXP_PORT_0, powerCLED); */
 	bStopTasksBetweenModes = true;
 	if(!RUNTEST)
 		LcdAutonomousSelection();
@@ -77,6 +79,7 @@ task usercontrol()
 	int lastManualMobileGoal = 0;
 	int lastManualLift = 0;
 	int lastManualClaw = 0;
+	int lastManualChainBar = 0;
 	while (true)
 	{
 		// Drive Code
@@ -100,9 +103,9 @@ task usercontrol()
 			reverseDrive = toggle(reverseDrive);
 		}
 
-		if(vexRT[Btn7LXmtr2] || vexRT[Btn7RXmtr2] || vexRT[Btn7DXmtr2] || vexRT[Btn7UXmtr2] || vexRT[Btn8L])
+		if(vexRT[Btn8U])
 		{
-			while(vexRT[Btn7LXmtr2] || vexRT[Btn7RXmtr2] || vexRT[Btn7DXmtr2] || vexRT[Btn7UXmtr2] || vexRT[Btn8L]) { wait1Msec(20); }
+			while(vexRT[Btn8U]) { wait1Msec(20); }
 			EMERGENCY_MODE = toggle(EMERGENCY_MODE);
 		}
 		if(EMERGENCY_MODE)
@@ -114,8 +117,7 @@ task usercontrol()
 		{
 			pidActive = 1;
 		}
-		if(resetButton)
-			;
+
 		// Mobile Goal
 		if(EMERGENCY_MODE && vexRT[Btn5D])
 		{
@@ -141,25 +143,31 @@ task usercontrol()
 		}
 		else if(vexRT[Btn8D])
 		{
+			mobilePIDActive = 1;
 			mobileGoalSetpoint = mobileGoalUp;
 		}
 
 		// Lift (Autostack and Manual)
-		if(vexRT[Btn8DXmtr2] || vexRT[Btn8RXmtr2] || vexRT[Btn8LXmtr2] || vexRT[Btn8UXmtr2])
+		if(vexRT[Btn7R])
 		{
-			while(vexRT[Btn8L]) { wait1Msec(20); }
+			while(vexRT[Btn7R]) { wait1Msec(20); }
 			doubleStackLoader = toggle(doubleStackLoader); // 0 -> 1-0 = 1 ; 1 -> 1-1 = 0 -- Toggle Shorthand
 		}
 
-		if(EMERGENCY_MODE && vexRT[Btn5U])
+		if(EMERGENCY_MODE && vexRT[Btn7L])
 		{
 			SetMotor(doubleLeft, -65);
 			SetMotor(doubleRight, -65);
 		}
-		else if(EMERGENCY_MODE && vexRT[Btn6U])
+		else if(EMERGENCY_MODE && vexRT[Btn8R])
 		{
 			SetMotor(doubleLeft, 65);
 			SetMotor(doubleRight, 65);
+		}
+		else if(EMERGENCY_MODE)
+		{
+			SetMotor(doubleLeft, 12);
+			SetMotor(doubleRight, 12);
 		}
 		else if(!EMERGENCY_MODE && vexRT[Btn7L])
 		{
@@ -199,12 +207,24 @@ task usercontrol()
 		}
 
 		// Chainbar
-		if(EMERGENCY_MODE && vexRT[Btn7L]) // Up
-			;
-	  else if(EMERGENCY_MODE && vexRT[Btn8R]) // Down
-	  	;
-	 	else if(!activateAutoStacker && mobileDone)
-	 		;
+		if(vexRT[Btn5U])
+		{
+			chainBarPIDActive = 0;
+			SetMotor(chainbar, -127);
+			lastManualChainBar = 1;
+		}
+		if(vexRT[Btn6U])
+		{
+			chainBarPIDActive = 0;
+			SetMotor(chainbar, 127);
+			lastManualChainBar = 1;
+		}
+		else if(lastManualClaw == 1)
+		{
+			chainBarPIDActive = 1;
+			chainBarSetpoint = nMotorEncoder[chainbar];
+			lastManualChainBar = 0;
+		}
 		// Claw
 		if(vexRT[Btn5D])
 		{
