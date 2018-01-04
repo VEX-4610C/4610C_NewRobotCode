@@ -12,41 +12,16 @@
 #define min(x,y) ((x) > (y) ? (y) : (x))
 #define max(x,y) ((x) > (y) ? (x) : (y))
 #define resetButton (vexRT[Btn7Ch2int lastElevator = 0;
-int activeElevator = 1, stopElevator = 0;
-int elevatorBottom = 0;
-int elevatorTop = 1;
-int lastElevator = 1;
+int elevatorBottom = 800;
+float elevatorKP = 0.25, elevatorKD = 0.07;
+int elevatorTop = 0;
 int elevatorDone = 0;
-void mobileGoalChange(int degs) // Lift Up using encoders
+#include "zAutonomousFunctions.c"
+#include "zAutonomousRoutines.c"
+task watchdog()
 {
-	if(stopElevator == 0)
-	{
-		if(degs == elevatorTop && lastElevator == elevatorBottom)
-		{
-			elevatorDone = 0;
-			activeElevator = time10[T1] + 100;
-			motor[mobileGoal] = 127;
-			stopElevator = 1;
-		}
-		else if(degs == elevatorBottom && lastElevator == elevatorTop)
-		{
-			elevatorDone = 0;
-			activeElevator = time10[T1] + 100;
-			motor[mobileGoal] = -127;
-			stopElevator = 1;
-		}
-	}
-	else
-	{
-		if(time10[T1] > activeElevator)
-		{
-			motor[mobileGoal] = 0;
-			elevatorDone = 1;
-			stopElevator = 0;
-		}
-	}
-	lastElevator = degs;
 }
+
 task main()
 {
 	int mgGoal = 1;

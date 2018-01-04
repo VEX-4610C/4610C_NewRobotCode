@@ -2,42 +2,41 @@
 #define doubleDown 0
 #define doublePreload 100
 #define doubleMobileGoal 25
-#define doubleKP 25
+#define doubleKP 0.8
 #define doubleKI 0
-#define doubleKD 7
-#define doubleDIVISOR 100
-const int doubleUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#define doubleKD 0.02
+const int doubleUp[10] = {600, 600, 600, 600, 600, 600, 600, 600, 600, 600};
 int doubleSetpoint = doubleDown;
 int doubleDone = 0;
 int doubleStackLoader = 0;
 int doublePIDActive = 1;
 
-#define mobileGoalDown 1750
-#define mobileGoalUp 0
-#define mobileKP 25
+#define mobileGoalDown 3376
+#define mobileGoalUp 1200
+#define mobileKP 0.3
 #define mobileKI 0
-#define mobileKD 7
+#define mobileKD 0
 #define mobileDIVISOR 100
 int mobileGoalSetpoint = mobileGoalUp;
 int mobileDone = 0;
 int mobilePIDActive = 1;
 
 #define chainBarUp 0
-#define chainBarDown 2000
-#define chainBarMobileGoal 1000
-#define chainBarKP 25
+#define chainBarDown 800
+#define chainBarMobileGoal 300
+#define chainBarKP 0.25
 #define chainBarKI 0
-#define chainBarKD 7
+#define chainBarKD 0.07
 #define chainBarDIVISOR 100
 int chainBarSetpoint = chainBarUp;
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
 
-#define clawOpen 0
-#define clawClosed 2000
-#define clawKP 25
+#define clawOpen 250
+#define clawClosed 250
+#define clawKP 0.25
 #define clawKI 0
-#define clawKD 7
+#define clawKD 0.07
 #define clawDIVISOR 100
 int clawSetpoint = clawOpen;
 int clawDone = 0;
@@ -57,13 +56,13 @@ task WATCHDOG
 	int clawStartTimer, clawEndTime;
 	// DR4B PID Controller
 	pos_PID doublePID;
-	pos_PID_InitController(&doublePID, doubleRight, doubleKP, doubleKI, doubleKD);
+	pos_PID_InitController(&doublePID, doubleLeft, doubleKP, doubleKI, doubleKD);
 	// Chain Bar PID Controller
 	pos_PID chainbarPID;
 	pos_PID_InitController(&chainbarPID, chainbar, chainBarKP, chainBarKI, chainBarKD);
 	// Mobile Goal PID Controller
 	pos_PID mobilePID;
-	pos_PID_InitController(&mobilePID, mobileGoal, mobileKP, mobileKI, mobileKD);
+	pos_PID_InitController(&mobilePID, mobilePot, mobileKP, mobileKI, mobileKD);
 	// Claw PID Controller
 	pos_PID clawPIDController;
 	pos_PID_InitController(&clawPIDController, clawPot, clawKP, clawKI, clawKD);
@@ -77,30 +76,24 @@ task WATCHDOG
 			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
 			pos_PID_SetTargetPosition(&clawPIDController, clawSetpoint);
 			int mobileGoalPower = pos_PID_StepController(&mobilePID);
-			if(mobileGoalPower > 15)
-			{
-				doubleSetpoint =  max(doubleSetpoint, doubleMobileGoal);
-				pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
-				pos_PID_SetTargetPosition(&chainbarPID, chainBarMobileGoal);
-				if(abs(pos_PID_GetError(&doublePID)) > 25 || abs(pos_PID_GetError(&chainbarPID)) > 25)
-					mobileGoalPower = 0;
-			}
+			writeDebugStreamLine("%d", pos_PID_StepController(&mobilePID));
 			if(doublePIDActive)
 			{
-				SetMotor(doubleRight, pos_PID_StepController(&doublePID) / doubleDIVISOR);
-				SetMotor(doubleLeft, pos_PID_StepController(&doublePID) / doubleDIVISOR);
+				int x = pos_PID_StepController(&doublePID);
+				motor[doubleRight] = x;
+				motor[doubleLeft] = x;
 			}
 			if(chainBarPIDActive)
 			{
-				SetMotor(chainbar, pos_PID_StepController(&chainbarPID) / chainBarDIVISOR);
+				SetMotor(chainbar, pos_PID_StepController(&chainbarPID));
 			}
 			if(mobilePIDActive)
 			{
-				SetMotor(mobileGoal,  mobileGoalPower / mobileDIVISOR);
+				SetMotor(mobileGoal,  mobileGoalPower);
 			}
 			if(clawPIDActive)
 			{
-				SetMotor(claw, pos_PID_StepController(&clawPIDController) / clawDIVISOR);
+				SetMotor(claw, pos_PID_StepController(&clawPIDController));
 			}
 			// Dones
 			if(abs(pos_PID_GetError(&doublePID)) < 50)
@@ -179,10 +172,10 @@ task WATCHDOG
 		}
 	}
 }
+int innerState = 0;
+int lastAutostacker = 0;
 task autoStacker
 {
-	int innerState = 0;
-	int lastAutostacker = 0;
 	/* ORDER OF ACTIONS:
 	1. Close Claw
 	2. Lift DR4B
@@ -197,7 +190,7 @@ task autoStacker
 		{
 			innerState = 0;
 		}
-		if(activateAutoStacker && mobileDone)
+		if(activateAutoStacker)
 		{
 			if(innerState == 0)
 			{
@@ -268,7 +261,7 @@ task autoStacker
 			{
 				if(doubleDone)
 				{
-					currentStacked ++;
+					currentStacked;
 					activateAutoStacker = 0;
 					innerState = 0;
 				}
@@ -277,6 +270,7 @@ task autoStacker
 					doubleSetpoint = doubleStackLoader ? doubleStackLoader : doubleDown;
 				}
 			}
+			lastAutostacker = 1;
 		}
 	}
 }
@@ -356,10 +350,10 @@ void LcdAutonomousSet( int value, bool select = false )
 	// Show the autonomous names
 	switch(value) {
 	case    0:
-		displayLCDString(0, 0, "Mobile Goal RED");
+		displayLCDString(0, 0, "MG Wall Left");
 		break;
 	case    1:
-		displayLCDString(0, 0, "Mobile Goal Blue");
+		displayLCDString(0, 0, "MG Wall Right");
 		break;
 	case    2:
 		displayLCDString(0, 0, "Programming Skills");
@@ -412,7 +406,7 @@ void degmove(int distance)
 	pos_PID_InitController(&left, frontLeft, 0.02, 0, 0.01);
 	pos_PID_InitController(&right, frontRight, 0.02, 0, 0.01);
 	pos_PID_InitController(&turn, gyro, 0.04, 0, 0.00);
-	distance *= 15;
+	distance *= 25;
 	int leftGoal = nMotorEncoder[frontLeft] + distance;
 	int rightGoal = nMotorEncoder[frontRight] + distance;
 	pos_PID_SetTargetPosition(&left, leftGoal);
@@ -491,7 +485,7 @@ void gyroturn(int degs)
 {
 	pos_PID turn;
 	degs += SensorValue[gyro];
-	pos_PID_InitController(&turn, gyro, 0.04, 0, 0.00);
+	pos_PID_InitController(&turn, gyro, 0.04, 0, 0);
 	pos_PID_SetTargetPosition(&turn, degs);
 	int turnStartTimer = 0, turnEndTime = 0;
 	int turnDone = 0;

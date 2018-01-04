@@ -1,3 +1,7 @@
+#define RED 0
+#define BLUE 1
+#define LEFT 0
+#define RIGHT 1
 void testDegmove()
 {
 	degmove(24);
@@ -29,5 +33,6 @@ void testLargeGyroturn()
 /* Routines to Write
 -	7 Point Match Auto
 */
-
-
+void mobileGoalAuto(int alliance)
+{
+}
