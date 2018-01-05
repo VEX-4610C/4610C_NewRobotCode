@@ -28,19 +28,15 @@ int mobilePIDActive = 1;
 #define chainBarKI 0
 #define chainBarKD 0.07
 #define chainBarDIVISOR 100
+#define chainBarSensor chainBarPot
 int chainBarSetpoint = chainBarUp;
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
 
 #define clawOpen 250
 #define clawClosed 250
-#define clawKP 0.25
-#define clawKI 0
-#define clawKD 0.07
-#define clawDIVISOR 100
+#define clawDone 1
 int clawSetpoint = clawOpen;
-int clawDone = 0;
-int clawPIDActive = 1;
 
 int activateAutoStacker = 0;
 int currentStacked = 0;
@@ -53,19 +49,16 @@ task WATCHDOG
 	int doubleStartTimer, doubleEndTime;
 	int mobileStartTimer, mobileEndTime;
 	int chainBarStartTimer, chainBarEndTime;
-	int clawStartTimer, clawEndTime;
 	// DR4B PID Controller
 	pos_PID doublePID;
 	pos_PID_InitController(&doublePID, doubleLeft, doubleKP, doubleKI, doubleKD);
 	// Chain Bar PID Controller
 	pos_PID chainbarPID;
-	pos_PID_InitController(&chainbarPID, chainbar, chainBarKP, chainBarKI, chainBarKD);
+	pos_PID_InitController(&chainbarPID, chainBarSensor, chainBarKP, chainBarKI, chainBarKD);
 	// Mobile Goal PID Controller
 	pos_PID mobilePID;
 	pos_PID_InitController(&mobilePID, mobilePot, mobileKP, mobileKI, mobileKD);
 	// Claw PID Controller
-	pos_PID clawPIDController;
-	pos_PID_InitController(&clawPIDController, clawPot, clawKP, clawKI, clawKD);
 
 	while(1)
 	{
@@ -74,13 +67,11 @@ task WATCHDOG
 			pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
 			pos_PID_SetTargetPosition(&chainbarPID, chainBarSetpoint);
 			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
-			pos_PID_SetTargetPosition(&clawPIDController, clawSetpoint);
 			int mobileGoalPower = pos_PID_StepController(&mobilePID);
 			writeDebugStreamLine("%d", pos_PID_StepController(&mobilePID));
 			if(doublePIDActive)
 			{
 				int x = pos_PID_StepController(&doublePID);
-				motor[doubleRight] = x;
 				motor[doubleLeft] = x;
 			}
 			if(chainBarPIDActive)
@@ -91,10 +82,7 @@ task WATCHDOG
 			{
 				SetMotor(mobileGoal,  mobileGoalPower);
 			}
-			if(clawPIDActive)
-			{
-				SetMotor(claw, pos_PID_StepController(&clawPIDController));
-			}
+			SetMotor(claw, clawSetpoint);
 			// Dones
 			if(abs(pos_PID_GetError(&doublePID)) < 50)
 			{
@@ -149,24 +137,6 @@ task WATCHDOG
 			else
 			{
 				chainBarDone = 0;
-			}
-			if(abs(pos_PID_GetError(&clawPIDController)) < 50)
-			{
-				if(clawStartTimer == 0)
-					clawEndTime = time10[T1] + HOLDOUT;
-				clawStartTimer = 1;
-			}
-			else
-			{
-				clawStartTimer = 0;
-			}
-			if(clawStartTimer && time10[T1] > clawEndTime)
-			{
-				clawDone = 1;
-			}
-			else
-			{
-				clawDone = 0;
 			}
 			wait1Msec(25);
 		}
@@ -261,7 +231,6 @@ task autoStacker
 			{
 				if(doubleDone)
 				{
-					currentStacked;
 					activateAutoStacker = 0;
 					innerState = 0;
 				}
@@ -513,5 +482,19 @@ void gyroturn(int degs)
 		{
 			turnDone = 0;
 		}
+	}
+}
+int batteryOneLevel, batteryTwoLevel;
+task batLevel
+{
+	while(1)
+	{
+		batteryOneLevel = nImmediateBatteryLevel;
+		batteryTwoLevel = (int)((float)SensorValue[ peStatus ] * 5.48); // if wrong try 3.636
+		displayLCDString(0, 0, "Cortex BL ");
+    displayLCDNumber(0, 10, batteryOneLevel, 4);
+    displayLCDString(0, 0, "PrwrEx BL ");
+    displayLCDNumber(0, 10, batteryTwoLevel, 4);
+		wait1Msec(500);
 	}
 }

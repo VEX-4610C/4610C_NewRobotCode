@@ -1,22 +1,17 @@
 #pragma config(I2C_Usage, I2C1, i2cSensors)
-#pragma config(Sensor, in1,    clawPot,        sensorPotentiometer)
+#pragma config(Sensor, in1,    chainBarPot,    sensorPotentiometer)
 #pragma config(Sensor, in2,    mobilePot,      sensorPotentiometer)
-#pragma config(Sensor, in3,    PEStatus,       sensorAnalog)
-#pragma config(Sensor, in4,    gyro,           sensorGyro)
-#pragma config(Sensor, dgtl1,  liftlimit,      sensorTouch)
-#pragma config(Sensor, dgtl10, powerALED,      sensorLEDtoVCC)
-#pragma config(Sensor, dgtl11, powerBLED,      sensorLEDtoVCC)
-#pragma config(Sensor, dgtl12, powerCLED,      sensorLEDtoVCC)
+#pragma config(Sensor, in3,    gyro,           sensorGyro)
+#pragma config(Sensor, in4,    peStatus,       sensorAnalog)
 #pragma config(Sensor, I2C_1,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_3,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_4,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
-#pragma config(Motor,  port1,           claw,          tmotorNone, openLoop)
 #pragma config(Motor,  port2,           mobileGoal,    tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port3,           backLeft,      tmotorVex393_MC29, openLoop)
-#pragma config(Motor,  port4,           doubleLeft,    tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_3)
-#pragma config(Motor,  port5,           chainbar,      tmotorVex393_MC29, openLoop, encoderPort, I2C_4)
-#pragma config(Motor,  port6,           doubleRight,   tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port4,           chainbar,      tmotorVex393_MC29, openLoop, encoderPort, I2C_4)
+#pragma config(Motor,  port5,           claw,          tmotorServoContinuousRotation, openLoop)
+#pragma config(Motor,  port6,           doubleLeft,    tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_3)
 #pragma config(Motor,  port7,           frontRight,    tmotorVex393_MC29, openLoop, encoderPort, I2C_2)
 #pragma config(Motor,  port8,           frontLeft,     tmotorVex393_MC29, openLoop, encoderPort, I2C_1)
 #pragma config(Motor,  port9,           backRight,     tmotorVex393_MC29, openLoop, reversed)
@@ -51,7 +46,7 @@ void pre_auton()
 
 task autonomous()
 {
-	SmartMotorRun();
+	// SmartMotorRun();
 	if(RUNTEST == 1 && TEST == 0)
 		testDegmove();
 	if(RUNTEST == 1 && TEST == 1)
@@ -64,20 +59,22 @@ task autonomous()
 		mobileGoalAuto(RIGHT);
 
 }
-	int EMERGENCY_MODE = 0;
-	int left = 0, right = 0;
-	int lastManualMobileGoal = 0;
-	int lastManualLift = 0;
-	int lastManualClaw = 0;
-	int lastManualChainBar = 0;
+int EMERGENCY_MODE = 0;
+int left = 0, right = 0;
+int lastManualMobileGoal = 0;
+int lastManualLift = 0;
+int lastManualClaw = 0;
+int lastManualChainBar = 0;
 task usercontrol()
 {
 	startTask(WATCHDOG);
 	startTask(autoStacker);
-	SmartMotorRun();
+	startTask(batLevel);
+	//SmartMotorRun();
 
 	while (true)
 	{
+
 		// Drive Code
 		left   = abs(vexRT[Ch3]);
 		right  = abs(vexRT[Ch2]);
@@ -142,30 +139,25 @@ task usercontrol()
 		if(EMERGENCY_MODE && vexRT[Btn7L])
 		{
 			SetMotor(doubleLeft, -127);
-			SetMotor(doubleRight, -127);
 		}
 		else if(EMERGENCY_MODE && vexRT[Btn8R])
 		{
 			SetMotor(doubleLeft, 127);
-			SetMotor(doubleRight, 127);
 		}
 		else if(EMERGENCY_MODE)
 		{
 			SetMotor(doubleLeft, 12);
-			SetMotor(doubleRight, 12);
 		}
 		else if(!EMERGENCY_MODE && vexRT[Btn7L])
 		{
 			doublePIDActive = 0;
 			SetMotor(doubleLeft, -127);
-			SetMotor(doubleRight, -127);
 			lastManualLift = 1;
 		}
 		else if(!EMERGENCY_MODE && vexRT[Btn8R])
 		{
 			doublePIDActive = 0;
 			SetMotor(doubleLeft, 127);
-			SetMotor(doubleRight, 127);
 			lastManualLift = 1;
 		}
 		else if(doublePIDActive == 0 && lastManualLift == 1)
@@ -206,21 +198,11 @@ task usercontrol()
 		// Claw
 		if(vexRT[Btn5D])
 		{
-			clawPIDActive = 0;
-			SetMotor(claw, -127);
-			lastManualClaw = 1;
+			clawSetpoint -= 3;
 		}
 		if(vexRT[Btn6D])
 		{
-			clawPIDActive = 0;
-			SetMotor(claw, 127);
-			lastManualClaw = 1;
-		}
-		else if(lastManualClaw == 1)
-		{
-			clawPIDActive = 1;
-			clawSetpoint = SensorValue[clawPot];
-			lastManualClaw = 0;
+			clawSetpoint += 3;
 		}
 	}
 }
