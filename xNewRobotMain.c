@@ -3,6 +3,7 @@
 #pragma config(Sensor, in2,    mobilePot,      sensorPotentiometer)
 #pragma config(Sensor, in3,    gyro,           sensorGyro)
 #pragma config(Sensor, in4,    peStatus,       sensorAnalog)
+#pragma config(Sensor, in5,    liftPot,        sensorPotentiometer)
 #pragma config(Sensor, I2C_1,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_3,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
@@ -27,6 +28,7 @@
 #define min(x,y) ((x) > (y) ? (y) : (x))
 #define max(x,y) ((x) > (y) ? (x) : (y))
 #define resetButton (vexRT[Btn7R])
+#define clawSpeedCoef 3
 #include "Vex_Competition_Includes.c"
 /* include "zSmartMotorLib.c" */
 #define SetMotor(x, y) (motor[(x)] = (y))
@@ -46,6 +48,7 @@ void pre_auton()
 
 task autonomous()
 {
+	startTask(batLevel, 0);
 	// SmartMotorRun();
 	if(RUNTEST == 1 && TEST == 0)
 		testDegmove();
@@ -69,7 +72,7 @@ task usercontrol()
 {
 	startTask(WATCHDOG);
 	startTask(autoStacker);
-	startTask(batLevel);
+	startTask(batLevel, 0);
 	//SmartMotorRun();
 
 	while (true)
@@ -198,11 +201,11 @@ task usercontrol()
 		// Claw
 		if(vexRT[Btn5D])
 		{
-			clawSetpoint -= 3;
+			clawSetpoint -= clawSpeedCoef;
 		}
 		if(vexRT[Btn6D])
 		{
-			clawSetpoint += 3;
+			clawSetpoint += clawSpeedCoef;
 		}
 	}
 }

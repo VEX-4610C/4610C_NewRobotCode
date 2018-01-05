@@ -5,6 +5,7 @@
 #define doubleKP 0.8
 #define doubleKI 0
 #define doubleKD 0.02
+#define doubleSensor doubleLeft
 const int doubleUp[10] = {600, 600, 600, 600, 600, 600, 600, 600, 600, 600};
 int doubleSetpoint = doubleDown;
 int doubleDone = 0;
@@ -51,7 +52,7 @@ task WATCHDOG
 	int chainBarStartTimer, chainBarEndTime;
 	// DR4B PID Controller
 	pos_PID doublePID;
-	pos_PID_InitController(&doublePID, doubleLeft, doubleKP, doubleKI, doubleKD);
+	pos_PID_InitController(&doublePID, doubleSensor, doubleKP, doubleKI, doubleKD);
 	// Chain Bar PID Controller
 	pos_PID chainbarPID;
 	pos_PID_InitController(&chainbarPID, chainBarSensor, chainBarKP, chainBarKI, chainBarKD);
@@ -69,6 +70,10 @@ task WATCHDOG
 			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
 			int mobileGoalPower = pos_PID_StepController(&mobilePID);
 			writeDebugStreamLine("%d", pos_PID_StepController(&mobilePID));
+			if(abs(pos_PID_GetError(&mobilePID)) > 150)
+			{
+				pos_PID_SetTargetPosition(&doublePID, max(doubleSetpoint, doubleMobileGoal));
+			}
 			if(doublePIDActive)
 			{
 				int x = pos_PID_StepController(&doublePID);
