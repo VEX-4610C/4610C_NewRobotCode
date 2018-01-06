@@ -60,7 +60,7 @@ task WATCHDOG
 	pos_PID mobilePID;
 	pos_PID_InitController(&mobilePID, mobilePot, mobileKP, mobileKI, mobileKD);
 	// Claw PID Controller
-
+	int x;
 	while(1)
 	{
 		if(pidActive)
@@ -68,24 +68,27 @@ task WATCHDOG
 			pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
 			pos_PID_SetTargetPosition(&chainbarPID, chainBarSetpoint);
 			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
-			int mobileGoalPower = pos_PID_StepController(&mobilePID);
-			writeDebugStreamLine("%d", pos_PID_StepController(&mobilePID));
 			if(abs(pos_PID_GetError(&mobilePID)) > 150)
 			{
 				pos_PID_SetTargetPosition(&doublePID, max(doubleSetpoint, doubleMobileGoal));
 			}
 			if(doublePIDActive)
 			{
-				int x = pos_PID_StepController(&doublePID);
+				x = pos_PID_StepController(&doublePID);
+				x = abs(x) < 15 ? 0 : x;
 				motor[doubleLeft] = x;
 			}
 			if(chainBarPIDActive)
 			{
-				SetMotor(chainbar, pos_PID_StepController(&chainbarPID));
+				x = pos_PID_StepController(&chainbarPID);
+				x = abs(x) < 15 ? 0 : x;
+				SetMotor(chainbar, x);
 			}
 			if(mobilePIDActive)
 			{
-				SetMotor(mobileGoal,  mobileGoalPower);
+				x = pos_PID_StepController(&mobilePID);
+				x = abs(x) < 15 ? 0 : x;
+				SetMotor(mobileGoal,  x);
 			}
 			SetMotor(claw, clawSetpoint);
 			// Dones
@@ -246,6 +249,7 @@ task autoStacker
 			}
 			lastAutostacker = 1;
 		}
+		wait1Msec(100);
 	}
 }
 

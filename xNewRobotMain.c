@@ -77,7 +77,6 @@ task usercontrol()
 
 	while (true)
 	{
-
 		// Drive Code
 		left   = abs(vexRT[Ch3]);
 		right  = abs(vexRT[Ch2]);
