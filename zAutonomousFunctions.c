@@ -6,13 +6,15 @@
 #define doubleKI 0
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
-const int doubleUp[10] = {600, 600, 600, 600, 600, 600, 600, 600, 600, 600};
+#define noLiftAfterDropNum 2
+const int doubleStackUp[10] = {600, 600, 600, 600, 600, 600, 600, 600, 600, 600};
 int doubleSetpoint = doubleDown;
+int doubleError = 0;
 int doubleDone = 0;
 int doubleStackLoader = 0;
 int doublePIDActive = 1;
 
-#define mobileGoalDown 3376
+#define mobileGoalDown 3400
 #define mobileGoalUp 1200
 #define mobileKP 0.3
 #define mobileKI 0
@@ -22,20 +24,24 @@ int mobileGoalSetpoint = mobileGoalUp;
 int mobileDone = 0;
 int mobilePIDActive = 1;
 
-#define chainBarUp 0
-#define chainBarDown 800
+#define chainBarUp 400
+#define chainBarDown 1100
+#define chainBarPreload 750
+#define chainBarStack 1800
 #define chainBarMobileGoal 300
-#define chainBarKP 0.25
+#define chainBarKP 1
 #define chainBarKI 0
-#define chainBarKD 0.07
-#define chainBarDIVISOR 100
-#define chainBarSensor chainBarPot
+#define chainBarKD 0.0
+#define chainBarDIVISOR 1
+#define chainBarSensor chainbar
+const int chainBarStackUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int chainBarSetpoint = chainBarUp;
+int chainBarError = 0;
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
 
-#define clawOpen 250
-#define clawClosed 250
+#define clawOpen -20
+#define clawClosed 80
 #define clawDone 1
 int clawSetpoint = clawOpen;
 
@@ -43,7 +49,7 @@ int activateAutoStacker = 0;
 int currentStacked = 0;
 int pidActive = 1;
 
-#define HOLDOUT 75
+#define HOLDOUT 750
 
 task WATCHDOG
 {
@@ -63,12 +69,15 @@ task WATCHDOG
 	int x;
 	while(1)
 	{
+		writeDebugStreamLine("%d", pos_PID_GetError(&chainbarPID));
 		if(pidActive)
 		{
 			pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
 			pos_PID_SetTargetPosition(&chainbarPID, chainBarSetpoint);
 			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
-			if(abs(pos_PID_GetError(&mobilePID)) > 150)
+			doubleError = pos_PID_GetError(&doublePID);
+			chainBarError = pos_PID_GetError(&chainbarPID);
+			if(pos_PID_GetError(&mobilePID) > 150)
 			{
 				pos_PID_SetTargetPosition(&doublePID, max(doubleSetpoint, doubleMobileGoal));
 			}
@@ -76,13 +85,8 @@ task WATCHDOG
 			{
 				x = pos_PID_StepController(&doublePID);
 				x = abs(x) < 15 ? 0 : x;
-				motor[doubleLeft] = x;
-			}
-			if(chainBarPIDActive)
-			{
-				x = pos_PID_StepController(&chainbarPID);
-				x = abs(x) < 15 ? 0 : x;
-				SetMotor(chainbar, x);
+				SetMotor(doubleLeft, x);
+				SetMotor(doubleRight, x);
 			}
 			if(mobilePIDActive)
 			{
@@ -90,19 +94,23 @@ task WATCHDOG
 				x = abs(x) < 15 ? 0 : x;
 				SetMotor(mobileGoal,  x);
 			}
+			if(chainBarPIDActive)
+			{
+				SetMotor(chainbar, pos_PID_StepController(&chainbarPID));
+			}
 			SetMotor(claw, clawSetpoint);
 			// Dones
 			if(abs(pos_PID_GetError(&doublePID)) < 50)
 			{
 				if(doubleStartTimer == 0)
-					doubleEndTime = time10[T1] + HOLDOUT;
+					doubleEndTime = time1[T1] + HOLDOUT;
 				doubleStartTimer = 1;
 			}
 			else
 			{
 				doubleStartTimer = 0;
 			}
-			if(doubleStartTimer && time10[T1] > doubleEndTime)
+			if(doubleStartTimer && time1[T1] > doubleEndTime)
 			{
 				doubleDone = 1;
 			}
@@ -113,14 +121,14 @@ task WATCHDOG
 			if(abs(pos_PID_GetError(&mobilePID)) < 50)
 			{
 				if(mobileStartTimer == 0)
-					mobileEndTime = time10[T1] + HOLDOUT;
+					mobileEndTime = time1[T1] + HOLDOUT;
 				mobileStartTimer = 1;
 			}
 			else
 			{
 				mobileStartTimer = 0;
 			}
-			if(mobileStartTimer && time10[T1] > mobileEndTime)
+			if(mobileStartTimer && time1[T1] > mobileEndTime)
 			{
 				mobileDone = 1;
 			}
@@ -131,14 +139,14 @@ task WATCHDOG
 			if(abs(pos_PID_GetError(&chainbarPID)) < 50)
 			{
 				if(chainBarStartTimer == 0)
-					chainBarEndTime = time10[T1] + HOLDOUT;
+					chainBarEndTime = time1[T1] + HOLDOUT;
 				chainBarStartTimer = 1;
 			}
 			else
 			{
 				chainBarStartTimer = 0;
 			}
-			if(chainBarStartTimer && time10[T1] > chainBarEndTime)
+			if(chainBarStartTimer && time1[T1] > chainBarEndTime)
 			{
 				chainBarDone = 1;
 			}
@@ -168,7 +176,11 @@ task autoStacker
 		{
 			innerState = 0;
 		}
-		if(activateAutoStacker)
+		if(!activateAutoStacker)
+		{
+			lastAutostacker = 0;
+		}
+		else if(activateAutoStacker && currentStacked < 10)
 		{
 			if(innerState == 0)
 			{
@@ -179,77 +191,97 @@ task autoStacker
 			{
 				if(clawDone)
 				{
-					doubleSetpoint = doubleUp[currentStacked];
+					doubleDone = 0;
+					if(currentStacked < noLiftAfterDropNum)
+					{
+						doubleSetpoint = doubleStackUp[currentStacked];
+					}
+					else
+					{
+						doubleSetpoint = doubleStackUp[currentStacked] + 150;
+					}
 					innerState++;
-				}
-				else
-				{
-					clawSetpoint = clawClosed;
 				}
 			}
 			else if(innerState == 2)
 			{
-				if(doubleDone || doubleUp[currentStacked] == 0)
+				if(doubleDone)
 				{
-					chainBarSetpoint = chainBarUp;
+					chainBarSetpoint = chainBarStackUp[currentStacked];
 					innerState++;
-				}
-				else
-				{
-					doubleSetpoint = doubleUp[currentStacked];
 				}
 			}
 			else if(innerState == 3)
 			{
 				if(chainBarDone)
 				{
-					clawSetpoint = clawOpen;
+					doubleDone = 0;
+					doubleSetpoint = doubleStackUp[currentStacked];
 					innerState++;
-				}
-				else
-				{
-					chainBarSetpoint = chainBarUp;
 				}
 			}
 			else if(innerState == 4)
 			{
-				if(clawDone)
-				{
-					chainBarSetpoint = chainBarDown;
-					innerState++;
-				}
-				else
+				if(doubleDone)
 				{
 					clawSetpoint = clawOpen;
+					innerState++;
 				}
 			}
 			else if(innerState == 5)
 			{
-				if(chainBarDone)
+				if(clawDone)
 				{
-					doubleSetpoint = doubleStackLoader ? doubleStackLoader : doubleDown;
+					if(currentStacked < noLiftAfterDropNum)
+					{
+						doubleSetpoint = doubleStackUp[currentStacked];
+					}
+					else
+					{
+						doubleSetpoint = doubleStackUp[currentStacked] + 150;
+					}
 					innerState++;
-				}
-				else
-				{
-					chainBarSetpoint = chainBarDown;
 				}
 			}
 			else if(innerState == 6)
 			{
 				if(doubleDone)
 				{
-					activateAutoStacker = 0;
-					innerState = 0;
-				}
-				else
-				{
-					doubleSetpoint = doubleStackLoader ? doubleStackLoader : doubleDown;
+					if(doubleStackLoader)
+					{
+						chainBarSetpoint = chainBarPreload;
+					}
+					else
+					{
+						chainBarSetpoint = chainBarDown;
+					}
 				}
 			}
+			else if(innerState == 7)
+			{
+				if(chainBarDone)
+				{
+					if(doubleStackLoader)
+					{
+						doubleSetpoint = doublePreload;
+					}
+					else
+					{
+						doubleSetpoint = doubleDown;
+					}
+				}
+				innerState++;
+			}
+			else if(innerState == 8)
+			{
+				activateAutoStacker = 0;
+				currentStacked++;
+				innerState = 0;
+			}
+
 			lastAutostacker = 1;
 		}
-		wait1Msec(100);
+		wait1Msec(50);
 	}
 }
 
@@ -501,9 +533,9 @@ task batLevel
 		batteryOneLevel = nImmediateBatteryLevel;
 		batteryTwoLevel = (int)((float)SensorValue[ peStatus ] * 5.48); // if wrong try 3.636
 		displayLCDString(0, 0, "Cortex BL ");
-    displayLCDNumber(0, 10, batteryOneLevel, 4);
-    displayLCDString(0, 0, "PrwrEx BL ");
-    displayLCDNumber(0, 10, batteryTwoLevel, 4);
-		wait1Msec(500);
+		displayLCDNumber(0, 10, batteryOneLevel, 4);
+		displayLCDString(0, 0, "PrwrEx BL ");
+		displayLCDNumber(0, 10, batteryTwoLevel, 4);
+		wait1Msec(25);
 	}
 }
