@@ -67,7 +67,6 @@ int EMERGENCY_MODE = 0;
 int left = 0, right = 0;
 int lastManualMobileGoal = 0;
 int lastManualLift = 0;
-int lastManualClaw = 0;
 int lastManualChainBar = 0;
 task usercontrol()
 {
@@ -167,7 +166,7 @@ task usercontrol()
 		}
 		else if(doublePIDActive == 0 && lastManualLift == 1)
 		{
-			doublePIDActive = 0;
+			doublePIDActive = 1;
 			doubleSetpoint = nMotorEncoder[doubleLeft];
 		}
 		else
@@ -177,20 +176,20 @@ task usercontrol()
 		if(vexRT[Btn7U])
 		{
 			chainBarPIDActive = 0;
-			motor[chainbar] = 127;
+			motor[chainbar] = -127;
 			lastManualChainBar = 1;
 		}
 		else if(vexRT[Btn8U])
 		{
 			chainBarPIDActive = 0;
-			motor[chainbar] = -127;
+			motor[chainbar] = 127;
 			lastManualChainBar = 1;
 		}
 		else
 		{
 			if(lastManualChainBar)
 				chainBarSetpoint = nMotorEncoder[chainbar];
-			lastManualClaw = 0;
+			lastManualChainBar = 0;
 			chainBarPIDActive = 1;
 		}
 		// Claw

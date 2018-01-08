@@ -1,13 +1,14 @@
 //CONFIG PARAMETERS
 #define doubleDown 0
 #define doublePreload 100
-#define doubleMobileGoal 25
+#define doubleMobileGoal 250
 #define doubleKP 0.8
 #define doubleKI 0
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[10] = {600, 600, 600, 600, 600, 600, 600, 600, 600, 600};
+const int doubleStackUp[10] = {0, 0,   0,   0, 200, 300, 500,   0, 0, 0};
+const int chainPass[10]     = {0, 0, 150, 400, 400, 450, 700,   0, 0, 0};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -24,17 +25,15 @@ int mobileGoalSetpoint = mobileGoalUp;
 int mobileDone = 0;
 int mobilePIDActive = 1;
 
-#define chainBarUp 400
-#define chainBarDown 1100
-#define chainBarPreload 750
-#define chainBarStack 1800
-#define chainBarMobileGoal 300
-#define chainBarKP 1
+#define chainBarUp 0
+#define chainBarDown 3600
+#define chainBarPreload 2900
+#define chainBarStack 2000
+#define chainBarKP 0.6
 #define chainBarKI 0
-#define chainBarKD 0.0
+#define chainBarKD 0
 #define chainBarDIVISOR 1
 #define chainBarSensor chainbar
-const int chainBarStackUp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int chainBarSetpoint = chainBarUp;
 int chainBarError = 0;
 int chainBarDone = 0;
@@ -77,7 +76,7 @@ task WATCHDOG
 			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
 			doubleError = pos_PID_GetError(&doublePID);
 			chainBarError = pos_PID_GetError(&chainbarPID);
-			if(pos_PID_GetError(&mobilePID) > 150)
+			if(abs(pos_PID_GetError(&mobilePID)) > 150)
 			{
 				pos_PID_SetTargetPosition(&doublePID, max(doubleSetpoint, doubleMobileGoal));
 			}
