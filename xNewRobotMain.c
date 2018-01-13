@@ -85,21 +85,6 @@ task usercontrol()
 		motor[frontLeft] = motor[backLeft]   = ((int) left) * sign(vexRT[Ch3]);
 		motor[frontRight] = motor[backRight] = ((int) right) * sign(vexRT[Ch2]);
 
-		if(vexRT[Btn8L])
-		{
-			while(vexRT[Btn8L]) { wait1Msec(20); }
-			EMERGENCY_MODE = toggle(EMERGENCY_MODE);
-		}
-		if(EMERGENCY_MODE)
-		{
-			pidActive = 0;
-			activateAutoStacker = 0;
-		}
-		else
-		{
-			pidActive = 1;
-		}
-
 		// Mobile Goal
 		if(EMERGENCY_MODE && vexRT[Btn7D])
 		{
@@ -130,34 +115,32 @@ task usercontrol()
 		}
 
 		// Lift (Autostack and Manual)
-		if(vexRT[Btn5U])
-		{
-			while(vexRT[Btn5U]) { wait1Msec(20); }
-			doubleStackLoader = toggle(doubleStackLoader); // 0 -> 1-0 = 1 ; 1 -> 1-1 = 0 -- Toggle Shorthand
-		}
 		if(vexRT[Btn8L])
 		{
 			while(vexRT[Btn8L]) { wait1Msec(20); }
+			doubleStackLoader = toggle(doubleStackLoader); // 0 -> 1-0 = 1 ; 1 -> 1-1 = 0 -- Toggle Shorthand
+		}
+		if(vexRT[Btn5U])
+		{
+			while(vexRT[Btn5U]) { wait1Msec(20); }
 			currentStacked--;
 		}
+
 		if(vexRT[Btn7L])
 		{
 			doublePIDActive = 0;
 			SetMotor(doubleLeft, -127);
 			SetMotor(doubleRight, -127);
 			lastManualLift = 1;
+			activateAutoStacker = 0;
 		}
-		else if(!EMERGENCY_MODE && vexRT[Btn8R])
+		else if(vexRT[Btn8R])
 		{
 			doublePIDActive = 0;
 			SetMotor(doubleLeft, 127);
 			SetMotor(doubleRight, 127);
 			lastManualLift = 1;
-		}
-		else if(EMERGENCY_MODE)
-		{
-			SetMotor(doubleLeft, 12);
-			SetMotor(doubleRight, 12);
+			activateAutoStacker = 0;
 		}
 		else if(vexRT[Btn6U])
 		{
@@ -173,6 +156,7 @@ task usercontrol()
 		{
 			doublePIDActive = 1;
 		}
+
 		if(vexRT[Btn7U])
 		{
 			chainBarPIDActive = 0;
@@ -192,12 +176,13 @@ task usercontrol()
 			lastManualChainBar = 0;
 			chainBarPIDActive = 1;
 		}
+
 		// Claw
 		if(vexRT[Btn6D])
 		{
 			clawSetpoint = clawOpen;
 		}
-		if(vexRT[Btn5D])
+		else if(vexRT[Btn5D])
 		{
 			clawSetpoint = clawClosed;
 		}
@@ -210,6 +195,7 @@ task usercontrol()
 			doubleSetpoint = doubleDown;
 			chainBarSetpoint = chainBarDown;
 			mobileGoalSetpoint = mobileGoalDown;
+			activateAutoStacker = 0;
 		}
 	}
 

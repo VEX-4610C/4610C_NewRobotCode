@@ -36,6 +36,8 @@ typedef struct pos_PID_t
 
 	//Output
 	int outVal;
+	
+
 } pos_PID;
 
 /**

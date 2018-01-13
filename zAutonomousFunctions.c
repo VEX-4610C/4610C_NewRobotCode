@@ -29,6 +29,7 @@ int mobilePIDActive = 1;
 #define chainBarDown 3600
 #define chainBarPreload 2900
 #define chainBarStack 2000
+#define chainBarPassPos 3200
 #define chainBarKP 0.6
 #define chainBarKI 0
 #define chainBarKD 0
@@ -184,6 +185,7 @@ task autoStacker
 			if(innerState == 0)
 			{
 				clawSetpoint = clawClosed;
+				chainBarSetpoint = chainBarPassPos;
 				innerState++;
 			}
 			else if(innerState == 1)
@@ -191,14 +193,7 @@ task autoStacker
 				if(clawDone)
 				{
 					doubleDone = 0;
-					if(currentStacked < noLiftAfterDropNum)
-					{
-						doubleSetpoint = doubleStackUp[currentStacked];
-					}
-					else
-					{
-						doubleSetpoint = doubleStackUp[currentStacked] + 150;
-					}
+					doubleSetpoint = chainPass[currentStacked];
 					innerState++;
 				}
 			}
@@ -206,7 +201,7 @@ task autoStacker
 			{
 				if(doubleDone)
 				{
-					chainBarSetpoint = chainBarStackUp[currentStacked];
+					chainBarSetpoint = chainBarUp;
 					innerState++;
 				}
 			}
@@ -231,14 +226,7 @@ task autoStacker
 			{
 				if(clawDone)
 				{
-					if(currentStacked < noLiftAfterDropNum)
-					{
-						doubleSetpoint = doubleStackUp[currentStacked];
-					}
-					else
-					{
-						doubleSetpoint = doubleStackUp[currentStacked] + 150;
-					}
+					doubleSetpoint = chainPass[currentStacked];
 					innerState++;
 				}
 			}
@@ -246,14 +234,7 @@ task autoStacker
 			{
 				if(doubleDone)
 				{
-					if(doubleStackLoader)
-					{
-						chainBarSetpoint = chainBarPreload;
-					}
-					else
-					{
-						chainBarSetpoint = chainBarDown;
-					}
+					chainBarSetpoint = chainBarPassPos;
 				}
 			}
 			else if(innerState == 7)
@@ -273,6 +254,14 @@ task autoStacker
 			}
 			else if(innerState == 8)
 			{
+				if(doubleStackLoader)
+				{
+					chainBarSetpoint = chainBarPreload;
+				}
+				else
+				{
+					chainBarSetpoint = chainBarDown;
+				}
 				activateAutoStacker = 0;
 				currentStacked++;
 				innerState = 0;
@@ -359,10 +348,10 @@ void LcdAutonomousSet( int value, bool select = false )
 	// Show the autonomous names
 	switch(value) {
 	case    0:
-		displayLCDString(0, 0, "MG Wall Left");
+		displayLCDString(0, 0, "MG1 Wall Left");
 		break;
 	case    1:
-		displayLCDString(0, 0, "MG Wall Right");
+		displayLCDString(0, 0, "MG1 Wall Right");
 		break;
 	case    2:
 		displayLCDString(0, 0, "Programming Skills");
