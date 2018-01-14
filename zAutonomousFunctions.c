@@ -7,8 +7,7 @@
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[10] = {0, 0,   0,   0, 200, 300, 500,   0, 0, 0};
-const int chainPass[10]     = {0, 0, 150, 400, 400, 450, 700,   0, 0, 0};
+const int doubleStackUp[10] = {0, 0, 150, 400, 400, 450, 700,   0, 0, 0};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -17,7 +16,7 @@ int doublePIDActive = 1;
 
 #define mobileGoalDown 3400
 #define mobileGoalUp 1200
-#define mobileKP 0.3
+#define mobileKP 0.35
 #define mobileKI 0
 #define mobileKD 0
 #define mobileDIVISOR 100
@@ -26,10 +25,10 @@ int mobileDone = 0;
 int mobilePIDActive = 1;
 
 #define chainBarUp 0
-#define chainBarDown 3600
-#define chainBarPreload 2900
-#define chainBarStack 2000
-#define chainBarPassPos 3200
+#define chainBarDown 850
+#define chainBarPreload 400
+#define chainBarStack 0
+#define chainBarPassPos 700
 #define chainBarKP 0.6
 #define chainBarKI 0
 #define chainBarKD 0
@@ -40,8 +39,8 @@ int chainBarError = 0;
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
 
-#define clawOpen -20
-#define clawClosed 80
+#define clawOpen 30
+#define clawClosed 85
 #define clawDone 1
 int clawSetpoint = clawOpen;
 
@@ -118,7 +117,7 @@ task WATCHDOG
 			{
 				doubleDone = 0;
 			}
-			if(abs(pos_PID_GetError(&mobilePID)) < 50)
+			if(abs(pos_PID_GetError(&mobilePID)) < 150)
 			{
 				if(mobileStartTimer == 0)
 					mobileEndTime = time1[T1] + HOLDOUT;
@@ -193,7 +192,7 @@ task autoStacker
 				if(clawDone)
 				{
 					doubleDone = 0;
-					doubleSetpoint = chainPass[currentStacked];
+					doubleSetpoint = doubleStackUp[currentStacked];
 					innerState++;
 				}
 			}
@@ -207,10 +206,9 @@ task autoStacker
 			}
 			else if(innerState == 3)
 			{
-				if(chainBarDone)
+				if(doubleDone)
 				{
-					doubleDone = 0;
-					doubleSetpoint = doubleStackUp[currentStacked];
+					clawSetpoint = clawOpen;
 					innerState++;
 				}
 			}
@@ -218,26 +216,17 @@ task autoStacker
 			{
 				if(doubleDone)
 				{
-					clawSetpoint = clawOpen;
-					innerState++;
+					if(doubleStackLoader)
+					{
+						chainBarSetpoint = chainBarPreload;
+					}
+					else
+					{
+						chainBarSetpoint = chainBarPassPos;
+					}
 				}
 			}
 			else if(innerState == 5)
-			{
-				if(clawDone)
-				{
-					doubleSetpoint = chainPass[currentStacked];
-					innerState++;
-				}
-			}
-			else if(innerState == 6)
-			{
-				if(doubleDone)
-				{
-					chainBarSetpoint = chainBarPassPos;
-				}
-			}
-			else if(innerState == 7)
 			{
 				if(chainBarDone)
 				{
@@ -252,7 +241,7 @@ task autoStacker
 				}
 				innerState++;
 			}
-			else if(innerState == 8)
+			else if(innerState == 6)
 			{
 				if(doubleStackLoader)
 				{
@@ -398,121 +387,8 @@ void LcdAutonomousSelection()
 	}
 }
 
-void degmove(int distance)
-{
-	pos_PID left, right, turn;
-	pos_PID_InitController(&left, frontLeft, 0.02, 0, 0.01);
-	pos_PID_InitController(&right, frontRight, 0.02, 0, 0.01);
-	pos_PID_InitController(&turn, gyro, 0.04, 0, 0.00);
-	distance *= 25;
-	int leftGoal = nMotorEncoder[frontLeft] + distance;
-	int rightGoal = nMotorEncoder[frontRight] + distance;
-	pos_PID_SetTargetPosition(&left, leftGoal);
-	pos_PID_SetTargetPosition(&right, rightGoal);
-	pos_PID_SetTargetPosition(&turn, 0);
-	int leftDone = 0, rightDone = 0, turnDone = 0;
-	int leftStartTimer = 0, leftEndTime = 0;
-	int rightStartTimer = 0, rightEndTime = 0;
-	int turnStartTimer = 0, turnEndTime = 0;
-	while(leftDone == 0 || rightDone == 0 || turnDone == 0)
-	{
-		SetMotor(frontLeft, pos_PID_StepController(&left) + pos_PID_StepController(&turn));
-		SetMotor(backLeft, pos_PID_StepController(&left) + pos_PID_StepController(&turn));
-		SetMotor(frontRight, pos_PID_StepController(&right) - pos_PID_StepController(&turn));
-		SetMotor(backRight, pos_PID_StepController(&right) - pos_PID_StepController(&turn));
-		// check if left side is done
-		if(abs(pos_PID_GetError(&left)) < 50)
-		{
-			if(leftStartTimer == 0)
-				leftEndTime = time10[T1] + 75;
-			leftStartTimer = 1;
-		}
-		else
-		{
-			leftStartTimer = 0;
-		}
-		if(leftStartTimer && time10[T1] > leftEndTime)
-		{
-			leftDone = 1;
-		}
-		else
-		{
-			leftDone = 0;
-		}
-		// check if right side is done
-		if(abs(pos_PID_GetError(&right)) < 50)
-		{
-			if(rightStartTimer == 0)
-				rightEndTime = time10[T1] + 75;
-			rightStartTimer = 1;
-		}
-		else
-		{
-			rightStartTimer = 0;
-		}
-		if(rightStartTimer && time10[T1] > rightEndTime)
-		{
-			rightDone = 1;
-		}
-		else
-		{
-			rightDone = 0;
-		}
-		// check if turn is done
-		if(abs(pos_PID_GetError(&turn)) < 50)
-		{
-			if(turnStartTimer == 0)
-				turnEndTime = time10[T1] + 75;
-			turnStartTimer = 1;
-		}
-		else
-		{
-			turnStartTimer = 0;
-		}
-		if(turnStartTimer && time10[T1] > turnEndTime)
-		{
-			turnDone = 1;
-		}
-		else
-		{
-			turnDone = 0;
-		}
-	}
-}
-void gyroturn(int degs)
-{
-	pos_PID turn;
-	degs += SensorValue[gyro];
-	pos_PID_InitController(&turn, gyro, 0.04, 0, 0);
-	pos_PID_SetTargetPosition(&turn, degs);
-	int turnStartTimer = 0, turnEndTime = 0;
-	int turnDone = 0;
-	while(turnDone == 0)
-	{
-		SetMotor(frontLeft, pos_PID_StepController(&turn));
-		SetMotor(backLeft, pos_PID_StepController(&turn));
-		SetMotor(frontRight, -pos_PID_StepController(&turn));
-		SetMotor(backRight, -pos_PID_StepController(&turn));
-		if(abs(pos_PID_GetError(&turn)) < 50)
-		{
-			if(turnStartTimer == 0)
-				turnEndTime = time10[T1] + 75;
-			turnStartTimer = 1;
-		}
-		else
-		{
-			turnStartTimer = 0;
-		}
-		if(turnStartTimer && time10[T1] > turnEndTime)
-		{
-			turnDone = 1;
-		}
-		else
-		{
-			turnDone = 0;
-		}
-	}
-}
+
+
 int batteryOneLevel, batteryTwoLevel;
 task batLevel
 {
@@ -525,5 +401,81 @@ task batLevel
 		displayLCDString(0, 0, "PrwrEx BL ");
 		displayLCDNumber(0, 10, batteryTwoLevel, 4);
 		wait1Msec(25);
+	}
+}
+void degmove(int distance)
+{
+	nMotorEncoder[frontLeft] = 0;
+	distance *= 15;
+	if(distance > 0) // move forward
+	{
+		while(abs(nMotorEncoder[frontLeft]) < distance)
+		{
+			motor[frontLeft] = motor[backLeft] = abs(nMotorEncoder[frontLeft] - distance) * .2 + 35;
+			motor[frontRight] = motor[backRight] = abs(nMotorEncoder[frontLeft] - distance) * .2 + 35;
+		}
+		motor[frontLeft] = motor[backLeft] = -15;
+		motor[frontRight] = motor[backRight] = -15;
+		wait1Msec(100);
+		motor[frontLeft] = motor[backLeft] = 0;
+		motor[frontRight] = motor[backRight] = 0;
+	}
+	else
+	{
+		while(abs(nMotorEncoder[frontLeft]) < abs(distance))
+		{
+			motor[frontLeft] = motor[backLeft] = -1*(abs(nMotorEncoder[frontLeft] - distance) * .2 + 35);
+			motor[frontRight] = motor[backRight] = -1*(abs(nMotorEncoder[frontLeft] - distance) * .2 + 35);
+		}
+		motor[frontLeft] = motor[backLeft] = 15;
+		motor[frontRight] = motor[backRight] = 15;
+		wait1Msec(100);
+		motor[frontLeft] = motor[backLeft] = 0;
+		motor[frontRight] = motor[backRight] = 0;
+	}
+}
+void gyroturn(float degrees, int mG)
+{
+	SensorValue[in3] = 0;
+	float kP = mG ? 0.125 : 0.1;
+	if(degrees > 0) // turn right
+	{
+		int startTime = Time10[T4];
+		int lastValue = SensorValue[in3];
+		while(abs(SensorValue[in3]) < abs(degrees))
+		{
+			motor[frontLeft] = motor[backLeft] = (abs(degrees) - abs(SensorValue[in3])) * kP ;
+			motor[frontRight] = motor[backRight] = -1*((abs(degrees) - abs(SensorValue[in3])) * kP);
+			lastValue = SensorValue[in3];
+			writeDebugStreamLine("%d %d", Time10[T4] - startTime, abs(SensorValue[in3] - lastValue));
+			wait1Msec(20);
+			if((Time10[T4] - startTime) > 80 && abs(SensorValue[in3] - lastValue) < 3)
+				break;
+		}
+		motor[frontLeft] = motor[backLeft] = 15;
+		motor[frontRight] = motor[backRight] = -15;
+		wait1Msec(100);
+		motor[frontLeft] = motor[backLeft] = 0;
+		motor[frontRight] = motor[backRight] = 0;
+	}
+	else
+	{
+		int startTime = Time10[T4];
+		int lastValue = SensorValue[in3];
+		while(abs(SensorValue[in3]) < abs(degrees))
+		{
+			motor[frontLeft] = motor[backLeft] = -1*((abs(degrees) - abs(SensorValue[in3])) * kP + 35);
+			motor[frontRight] = motor[backRight] = (abs(degrees) - abs(SensorValue[in3])) * kP + 35;
+			lastValue = SensorValue[in3];
+			wait1Msec(20);
+			writeDebugStreamLine("%d %d", Time10[T4] - startTime, abs(SensorValue[in3] - lastValue))
+			if((Time10[T4] - startTime) > 80 && abs(SensorValue[in3] - lastValue) < 3)
+				break;
+		}
+		motor[frontLeft] = motor[backLeft] = 15;
+		motor[frontRight] = motor[backRight] = -15;
+		wait1Msec(100);
+		motor[frontLeft] = motor[backLeft] = 0;
+		motor[frontRight] = motor[backRight] = 0;
 	}
 }

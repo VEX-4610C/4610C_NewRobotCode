@@ -12,23 +12,20 @@ void testDegmove()
 }
 void testSmallGyroturn()
 {
-	gyroturn(450);
+	gyroturn(450, 0);
 	wait1Msec(250);
-	gyroturn(-900);
+	gyroturn(-900, 0);
 	wait1Msec(250);
-	gyroturn(900);
+	gyroturn(900, 0);
 	wait1Msec(250);
-	gyroturn(-450);
+	gyroturn(-450, 0);
 }
 void testLargeGyroturn()
 {
-	gyroturn(900);
-	wait1Msec(250);
-	gyroturn(-1800);
-	wait1Msec(250);
-	gyroturn(1800);
-	wait1Msec(250);
-	gyroturn(-900);
+	for(int i = 0; i < 4; i++)
+	{
+		gyroturn(1800, 0);
+	}
 }
 /* Routines to Write
 -	7 Point Match Auto
@@ -56,11 +53,11 @@ void mobileGoalAuto(int wall)
 
 	if(wall == LEFT)
 	{
-		gyroturn(105);
+		gyroturn(105, 0);
 	}
 	if(wall == RIGHT)
 	{
-		gyroturn(-105);
+		gyroturn(-105, 0);
 	}
 
 	mobileGoalSetpoint = mobileGoalDown;
@@ -69,4 +66,102 @@ void mobileGoalAuto(int wall)
 	while(!mobileDone) { wait1Msec(20); }
 
 	degmove(-14);
+}
+void programmingSkills()
+{
+	doubleSetpoint = 250;
+	startTask(WATCHDOG);
+	mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalDown;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+
+	degmove(50);
+
+	mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalUp;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+	degmove(-20);
+	gyroturn(1800, 1);
+	chainBarPIDActive = 0;
+
+	degmove(12);
+
+	mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalDown;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+
+
+	/*
+	degmove(-20);
+	mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalUp;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+	degmove(10);
+	gyroturn(900, 1);
+	degmove(40);
+	wait1Msec(300);
+	gyroturn(900, 0);
+
+	mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalDown;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+
+	degmove(45);
+		mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalUp;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+
+	degmove(-45);
+	gyroturn(1800, 1);
+	degmove(30);
+		mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalDown;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 127;
+	wait1Msec(1000);
+	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 0;
+	degmove(-60);
+	*/
+
+	degmove(-20);
+	mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalUp;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+	degmove(-28);
+	gyroturn(850, 0);
+
+		mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalDown;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+	degmove(40);
+		mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalUp;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+	degmove(20);
+	gyroturn(-1000, 1);
+	degmove(75);
+
+			mobileDone = 0;
+	mobileGoalSetpoint = mobileGoalDown;
+	wait1Msec(500);
+	while(!mobileDone) { wait1Msec(20); }
+	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 127;
+	wait1Msec(1000);
+	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 0;
+	degmove(-40);
+
+
+
+
+
 }

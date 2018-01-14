@@ -10,7 +10,7 @@
 #pragma config(Motor,  port2,           mobileGoal,    tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port3,           backLeft,      tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port4,           doubleLeft,    tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_3)
-#pragma config(Motor,  port5,           chainbar,      tmotorVex393HighSpeed_MC29, openLoop, reversed, encoderPort, I2C_4)
+#pragma config(Motor,  port5,           chainbar,      tmotorVex393_MC29, openLoop, encoderPort, I2C_4)
 #pragma config(Motor,  port6,           doubleRight,   tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port7,           claw,          tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port8,           frontLeft,     tmotorVex393_MC29, openLoop, encoderPort, I2C_1)
@@ -36,7 +36,7 @@
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 1, TEST = 0; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST = 5; // Manual Autonomous Test Controls
 void pre_auton()
 {
 	startTask(batLevel, 0);
@@ -47,6 +47,7 @@ void pre_auton()
 	bStopTasksBetweenModes = true;
 	if(!RUNTEST)
 		LcdAutonomousSelection();
+	motor[claw] = clawClosed;
 }
 task autonomous()
 {
@@ -62,6 +63,8 @@ task autonomous()
 		mobileGoalAuto(LEFT);
 	if(MyAutonomous == 1 || (RUNTEST == 1 && TEST == 4))
 		mobileGoalAuto(RIGHT);
+	if(MyAutonomous == 2 || (RUNTEST == 1 && TEST == 5))
+		programmingSkills();
 }
 int EMERGENCY_MODE = 0;
 int left = 0, right = 0;
@@ -71,6 +74,12 @@ int lastManualChainBar = 0;
 task usercontrol()
 {
 	//SmartMotorRun();
+
+	motor[chainbar] = 127;
+	wait1Msec(1000);
+	motor[chainbar] = -80;
+	wait1Msec(800);
+	nMotorEncoder[chainbar] = 0;
 	startTask(WATCHDOG);
 	startTask(batLevel, 0);
 	while (true)
