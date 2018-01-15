@@ -1,13 +1,14 @@
 //CONFIG PARAMETERS
 #define doubleDown 0
-#define doublePreload 100
+#define doublePreload 0
 #define doubleMobileGoal 250
+#define doubleFixedGoal 800
 #define doubleKP 0.8
 #define doubleKI 0
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[10] = {0, 0, 150, 400, 400, 450, 700,   0, 0, 0};
+const int doubleStackUp[10] = {0, 0, 150, 400, 400, 450, 700, 750, 800, 850};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -230,14 +231,7 @@ task autoStacker
 			{
 				if(chainBarDone)
 				{
-					if(doubleStackLoader)
-					{
-						doubleSetpoint = doublePreload;
-					}
-					else
-					{
 						doubleSetpoint = doubleDown;
-					}
 				}
 				innerState++;
 			}
@@ -258,7 +252,7 @@ task autoStacker
 
 			lastAutostacker = 1;
 		}
-		wait1Msec(50);
+		wait1Msec(100);
 	}
 }
 
@@ -440,16 +434,16 @@ void gyroturn(float degrees, int mG)
 	float kP = mG ? 0.125 : 0.1;
 	if(degrees > 0) // turn right
 	{
-		int startTime = Time10[T4];
+		int startTime = time10[T4];
 		int lastValue = SensorValue[in3];
 		while(abs(SensorValue[in3]) < abs(degrees))
 		{
 			motor[frontLeft] = motor[backLeft] = (abs(degrees) - abs(SensorValue[in3])) * kP ;
 			motor[frontRight] = motor[backRight] = -1*((abs(degrees) - abs(SensorValue[in3])) * kP);
 			lastValue = SensorValue[in3];
-			writeDebugStreamLine("%d %d", Time10[T4] - startTime, abs(SensorValue[in3] - lastValue));
+			writeDebugStreamLine("%d %d", time10[T4] - startTime, abs(SensorValue[in3] - lastValue));
 			wait1Msec(20);
-			if((Time10[T4] - startTime) > 80 && abs(SensorValue[in3] - lastValue) < 3)
+			if((time10[T4] - startTime) > 80 && abs(SensorValue[in3] - lastValue) < 3)
 				break;
 		}
 		motor[frontLeft] = motor[backLeft] = 15;
@@ -460,7 +454,7 @@ void gyroturn(float degrees, int mG)
 	}
 	else
 	{
-		int startTime = Time10[T4];
+		int startTime = time10[T4];
 		int lastValue = SensorValue[in3];
 		while(abs(SensorValue[in3]) < abs(degrees))
 		{
@@ -468,8 +462,8 @@ void gyroturn(float degrees, int mG)
 			motor[frontRight] = motor[backRight] = (abs(degrees) - abs(SensorValue[in3])) * kP + 35;
 			lastValue = SensorValue[in3];
 			wait1Msec(20);
-			writeDebugStreamLine("%d %d", Time10[T4] - startTime, abs(SensorValue[in3] - lastValue))
-			if((Time10[T4] - startTime) > 80 && abs(SensorValue[in3] - lastValue) < 3)
+			writeDebugStreamLine("%d %d", time10[T4] - startTime, abs(SensorValue[in3] - lastValue));
+			if((time10[T4] - startTime) > 80 && abs(SensorValue[in3] - lastValue) < 3)
 				break;
 		}
 		motor[frontLeft] = motor[backLeft] = 15;

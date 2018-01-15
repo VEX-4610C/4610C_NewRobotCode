@@ -67,101 +67,38 @@ void mobileGoalAuto(int wall)
 
 	degmove(-14);
 }
+#define mobileUp() mobileDone = 0; \
+								 mobileGoalSetpoint = mobileGoalUp; \
+								 wait1Msec(500); \
+								 while(!mobileDone) { wait1Msec(20); }
+
+#define mobileDown() mobileDone = 0; \
+								 mobileGoalSetpoint = mobileGoalDown; \
+								 wait1Msec(500); \
+								 while(!mobileDone) { wait1Msec(20); }
+
 void programmingSkills()
 {
+	motor[chainbar] = 127;
+	wait1Msec(1000);
+	motor[chainbar] = -80;
+	wait1Msec(800);
+	nMotorEncoder[chainbar] = 0;
 	doubleSetpoint = 250;
 	startTask(WATCHDOG);
-	mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalDown;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
-
+	mobileDown();
 	degmove(50);
-
-	mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalUp;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
+	mobileUp();
+	clawSetpoint = clawOpen;
 	degmove(-20);
-	gyroturn(1800, 1);
-	chainBarPIDActive = 0;
-
-	degmove(12);
-
-	mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalDown;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
-
-
-	/*
-	degmove(-20);
-	mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalUp;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
-	degmove(10);
-	gyroturn(900, 1);
-	degmove(40);
-	wait1Msec(300);
-	gyroturn(900, 0);
-
-	mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalDown;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
-
-	degmove(45);
-		mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalUp;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
-
-	degmove(-45);
-	gyroturn(1800, 1);
-	degmove(30);
-		mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalDown;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
+	gyroturn(1900, 1);
+	degmove(25);
+	mobileDown();
 	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 127;
 	wait1Msec(1000);
 	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 0;
 	degmove(-60);
-	*/
-
-	degmove(-20);
-	mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalUp;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
-	degmove(-28);
-	gyroturn(850, 0);
-
-		mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalDown;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
-	degmove(40);
-		mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalUp;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
-	degmove(20);
-	gyroturn(-1000, 1);
-	degmove(75);
-
-			mobileDone = 0;
-	mobileGoalSetpoint = mobileGoalDown;
-	wait1Msec(500);
-	while(!mobileDone) { wait1Msec(20); }
-	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 127;
-	wait1Msec(1000);
-	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 0;
-	degmove(-40);
-
-
-
-
-
+	mobileUp();
+	gyroturn(450, 0);
+	degmove(-150);
 }

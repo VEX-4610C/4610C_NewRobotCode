@@ -206,6 +206,11 @@ task usercontrol()
 			mobileGoalSetpoint = mobileGoalDown;
 			activateAutoStacker = 0;
 		}
+		if(vexRT[Ch1] > 100 && vexRT[Ch4] < -100)
+		{
+			doubleSetpoint = doubleFixedGoal;
+			chainBarSetpoint = chainBarPassPos;
+		}
 	}
 
 }
