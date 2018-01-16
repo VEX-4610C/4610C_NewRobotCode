@@ -440,12 +440,12 @@ void gyroturn(float degrees, int mG)
 	int error, power;
 	int totalError, lastError = degrees - SensorValue[in3], lastTime = time1[T3];
 	int startTime = time1[T3];
+	float dedt;
 	while(!turnDone)
 	{
 		error = degrees - SensorValue[in3];
-		if(error < 150)
-			totalError += error;
-		float dedt = (error - lastError) / (time1[T3] - lastTime);
+		dedt = (error - lastError) / (time1[T3] - lastTime);
+		totalError += dedt;
 		power = (error * kP) + (totalError * kI / (time1[T3] - startTime)) + (dedt * kD);
 		motor[frontLeft] = motor[backLeft] = power;
 		motor[frontRight] = motor[backRight] = -power;
@@ -478,11 +478,12 @@ void PIDDegmove(int degrees)
 	int turnStartTimer, turnEndTime;
 	int error, power;
 	int totalError, lastError = degrees - nMotorEncoder[frontLeft], lastTime = time1[T3];
+	float dedt;
 	while(!turnDone)
 	{
 		error = degrees - nMotorEncoder[frontLeft];
-		totalError += error;
-		float dedt = (error - lastError) / (time1[T3] - lastTime);
+		dedt = (error - lastError) / (time1[T3] - lastTime);
+		totalError += dedt;
 		power = (error * kP) + (totalError * kI) + (dedt * kD);
 		motor[frontLeft] = motor[backLeft] = power;
 		motor[frontRight] = motor[backRight] = power;
