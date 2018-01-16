@@ -51,6 +51,7 @@ void pre_auton()
 }
 task autonomous()
 {
+	setUpChainBar();
 	// SmartMotorRun();
 	startTask(batLevel, 0);
 	if(RUNTEST == 1 && TEST == 0)
@@ -74,12 +75,14 @@ int lastManualChainBar = 0;
 task usercontrol()
 {
 	//SmartMotorRun();
-
-	motor[chainbar] = 127;
-	wait1Msec(1000);
-	motor[chainbar] = -80;
-	wait1Msec(800);
-	nMotorEncoder[chainbar] = 0;
+	if(!setUpChainbarDone)
+	{
+		motor[chainbar] = 127;
+		wait1Msec(1500);
+		motor[chainbar] = -80;
+		wait1Msec(800);
+		nMotorEncoder[chainbar] = 0;
+	}
 	startTask(WATCHDOG);
 	startTask(batLevel, 0);
 	while (true)

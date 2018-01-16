@@ -39,6 +39,7 @@ int chainBarSetpoint = chainBarUp;
 int chainBarError = 0;
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
+int setUpChainbarDone = 0;
 
 #define clawOpen 30
 #define clawClosed 85
@@ -432,44 +433,99 @@ void gyroturn(float degrees, int mG)
 {
 	SensorValue[in3] = 0;
 	float kP = mG ? 0.125 : 0.1;
-	if(degrees > 0) // turn right
+	float kI = 0;
+	float kD = 0;
+	int turnDone = 0;
+	int turnStartTimer, turnEndTime;
+	int error, power;
+	int totalError, lastError = degrees - SensorValue[in3], lastTime = time1[T3];
+	int startTime = time1[T3];
+	while(!turnDone)
 	{
-		int startTime = time10[T4];
-		int lastValue = SensorValue[in3];
-		while(abs(SensorValue[in3]) < abs(degrees))
+		error = degrees - SensorValue[in3];
+		if(error < 150)
+			totalError += error;
+		float dedt = (error - lastError) / (time1[T3] - lastTime);
+		power = (error * kP) + (totalError * kI / (time1[T3] - startTime)) + (dedt * kD);
+		motor[frontLeft] = motor[backLeft] = power;
+		motor[frontRight] = motor[backRight] = -power;
+		if(abs(error) < 50 && !turnStartTimer)
 		{
-			motor[frontLeft] = motor[backLeft] = (abs(degrees) - abs(SensorValue[in3])) * kP ;
-			motor[frontRight] = motor[backRight] = -1*((abs(degrees) - abs(SensorValue[in3])) * kP);
-			lastValue = SensorValue[in3];
-			writeDebugStreamLine("%d %d", time10[T4] - startTime, abs(SensorValue[in3] - lastValue));
-			wait1Msec(20);
-			if((time10[T4] - startTime) > 80 && abs(SensorValue[in3] - lastValue) < 3)
-				break;
+			turnStartTimer = 1;
+			turnEndTime = time1[T3] + 750;
 		}
-		motor[frontLeft] = motor[backLeft] = 15;
-		motor[frontRight] = motor[backRight] = -15;
-		wait1Msec(100);
-		motor[frontLeft] = motor[backLeft] = 0;
-		motor[frontRight] = motor[backRight] = 0;
-	}
-	else
-	{
-		int startTime = time10[T4];
-		int lastValue = SensorValue[in3];
-		while(abs(SensorValue[in3]) < abs(degrees))
+		else if (abs(error) > 50)
 		{
-			motor[frontLeft] = motor[backLeft] = -1*((abs(degrees) - abs(SensorValue[in3])) * kP + 35);
-			motor[frontRight] = motor[backRight] = (abs(degrees) - abs(SensorValue[in3])) * kP + 35;
-			lastValue = SensorValue[in3];
-			wait1Msec(20);
-			writeDebugStreamLine("%d %d", time10[T4] - startTime, abs(SensorValue[in3] - lastValue));
-			if((time10[T4] - startTime) > 80 && abs(SensorValue[in3] - lastValue) < 3)
-				break;
+			turnStartTimer = 0;
 		}
-		motor[frontLeft] = motor[backLeft] = 15;
-		motor[frontRight] = motor[backRight] = -15;
-		wait1Msec(100);
-		motor[frontLeft] = motor[backLeft] = 0;
-		motor[frontRight] = motor[backRight] = 0;
+		if(turnStartTimer && turnEndTime < time1[T3])
+		{
+			turnDone = 1;
+		}
+		lastError = error;
+		lastTime = time1[T3];
+		wait1Msec(75);
 	}
 }
+void PIDDegmove(int degrees)
+{
+	nMotorEncoder[frontLeft] = 0;
+	degrees *= 25;
+	float kP = 0.25;
+	float kI = 0;
+	float kD = 0;
+	int turnDone = 0;
+	int turnStartTimer, turnEndTime;
+	int error, power;
+	int totalError, lastError = degrees - nMotorEncoder[frontLeft], lastTime = time1[T3];
+	while(!turnDone)
+	{
+		error = degrees - nMotorEncoder[frontLeft];
+		totalError += error;
+		float dedt = (error - lastError) / (time1[T3] - lastTime);
+		power = (error * kP) + (totalError * kI) + (dedt * kD);
+		motor[frontLeft] = motor[backLeft] = power;
+		motor[frontRight] = motor[backRight] = power;
+		if(abs(error) < 50 && !turnStartTimer)
+		{
+			turnStartTimer = 1;
+			turnEndTime = time1[T3] + 750;
+		}
+		else if(abs(error) > 50)
+		{
+			turnStartTimer = 0;
+		}
+		if(turnStartTimer && turnEndTime < time1[T3])
+		{
+			turnDone = 1;
+		}
+		lastError = error;
+		lastTime = time1[T3];
+		wait1Msec(75);
+	}
+}
+void setUpChainBar()
+{
+	motor[chainbar] = 127;
+	wait1Msec(1500);
+	motor[chainbar] = -80;
+	wait1Msec(800);
+	nMotorEncoder[chainbar] = 0;
+	setUpChainbarDone = 1;
+}
+/*
+Effects of increasing a parameter independently[21][22]
+    Rise time			Overshoot	Settling time	Steady-state error	Stability
+kP	Decrease			Increase	Small change	Decrease						Degrade
+kI	Decrease			Increase	Increase			Eliminate						Degrade
+kD	Minor change	Decrease	Decrease			No effect in theory	Improve if kD small
+
+If the system must remain online, one tuning method is to first set kI and kD values to zero. Increase the kP until the output of the
+loop oscillates, then the kP should be set to approximately half of that value for a "quarter amplitude decay" type response. Then increase
+kI until any offset is corrected in sufficient time for the process. However, too much kI will cause instability. Finally, increase kD,
+if required, until the loop is acceptably quick to reach its reference after a load disturbance. However, too much kD will cause excessive
+response and overshoot. A fast PID loop tuning usually overshoots slightly to reach the setpoint more quickly; however, some systems cannot a
+ccept overshoot, in which case an overdamped closed-loop system is required, which will require a kP setting significantly less than half that
+of the kP setting that was causing oscillation
+
+*/
