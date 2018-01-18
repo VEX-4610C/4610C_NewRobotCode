@@ -99,7 +99,7 @@ task WATCHDOG
 			{
 				SetMotor(chainbar, pos_PID_StepController(&chainbarPID));
 			}
-			SetMotor(claw, clawSetpoint);
+			motor[claw] = clawSetpoint;
 			// Dones
 			if(abs(pos_PID_GetError(&doublePID)) < 50)
 			{
@@ -232,7 +232,7 @@ task autoStacker
 			{
 				if(chainBarDone)
 				{
-						doubleSetpoint = doubleDown;
+					doubleSetpoint = doubleDown;
 				}
 				innerState++;
 			}
@@ -307,7 +307,7 @@ static int MyAutonomous = -1;
 /*-----------------------------------------------------------------------------*/
 
 // max number of auton choices
-#define MAX_CHOICE  2
+#define MAX_CHOICE  4
 
 void LcdAutonomousSet( int value, bool select = false )
 {
@@ -332,13 +332,19 @@ void LcdAutonomousSet( int value, bool select = false )
 	// Show the autonomous names
 	switch(value) {
 	case    0:
-		displayLCDString(0, 0, "MG1 Wall Left");
+		displayLCDString(0, 0, "MG 10 Zone");
 		break;
 	case    1:
-		displayLCDString(0, 0, "MG1 Wall Right");
+		displayLCDString(0, 0, "MG 20 WallLeft");
 		break;
 	case    2:
+		displayLCDString(0, 0, "MG 20 WallRight");
+		break;
+	case    3:
 		displayLCDString(0, 0, "Programming Skills");
+		break;
+	case    4:
+		displayLCDString(0, 0, "No Auto Run");
 		break;
 	default:
 		displayLCDString(0, 0, "SCREAM AT ALEX");
@@ -398,7 +404,7 @@ task batLevel
 		wait1Msec(25);
 	}
 }
-void degmove(int distance)
+void oldegmove(int distance)
 {
 	nMotorEncoder[frontLeft] = 0;
 	distance *= 15;
@@ -431,34 +437,47 @@ void degmove(int distance)
 }
 void gyroturn(float degrees, int mG)
 {
-	SensorValue[in3] = 0;
-	float kP = mG ? 0.125 : 0.1;
-	float kI = 0;
-	float kD = 0;
+	degrees = degrees;
+	SensorValue[gyro] = 0;
+	float kP = mG ? 0.18 : 0.11;
+	float kI = 0.02;
+	float kD = 0.01;
 	int turnDone = 0;
 	int turnStartTimer, turnEndTime;
 	int error, power;
-	int totalError, lastError = degrees - SensorValue[in3], lastTime = time1[T3];
-	int startTime = time1[T3];
+	int totalError, lastError = degrees, lastTime = time1[T3]-1;
+	int startTime = time1[T3]-1;
 	float dedt;
 	while(!turnDone)
 	{
-		error = degrees - SensorValue[in3];
+		error = degrees + SensorValue[gyro];
+		writeDebugStreamLine("%d %d %d", degrees, SensorValue[gyro], error);
 		dedt = (error - lastError) / (time1[T3] - lastTime);
 		totalError += dedt;
 		power = (error * kP) + (totalError * kI / (time1[T3] - startTime)) + (dedt * kD);
 		motor[frontLeft] = motor[backLeft] = power;
 		motor[frontRight] = motor[backRight] = -power;
+		writeDebugStreamLine("%d", error - lastError);
 		if(abs(error) < 50 && !turnStartTimer)
+		{
+			turnStartTimer = 1;
+			turnEndTime = time1[T3] + 250;
+		}
+		else if(abs(power) < 30 && !turnStartTimer)
+		{
+			turnStartTimer = 1;
+			turnEndTime = time1[T3] + 250;
+		}
+		else if (abs(error) > 50 && abs(power) > 30)
+		{
+			turnStartTimer = 0;
+		}
+		else if(time1[T3] - startTime > 4250)
 		{
 			turnStartTimer = 1;
 			turnEndTime = time1[T3] + 750;
 		}
-		else if (abs(error) > 50)
-		{
-			turnStartTimer = 0;
-		}
-		if(turnStartTimer && turnEndTime < time1[T3])
+		if(turnStartTimer && turnEndTime < time1[T3] && time1[T3] - startTime < 4250)
 		{
 			turnDone = 1;
 		}
@@ -467,17 +486,18 @@ void gyroturn(float degrees, int mG)
 		wait1Msec(75);
 	}
 }
-void PIDDegmove(int degrees)
+void degmove(int degrees)
 {
 	nMotorEncoder[frontLeft] = 0;
 	degrees *= 25;
-	float kP = 0.25;
+	float kP = 0.28;
 	float kI = 0;
 	float kD = 0;
 	int turnDone = 0;
 	int turnStartTimer, turnEndTime;
 	int error, power;
-	int totalError, lastError = degrees - nMotorEncoder[frontLeft], lastTime = time1[T3];
+	int totalError, lastError = degrees - nMotorEncoder[frontLeft], lastTime = time1[T3]-1;
+	int startTime = time1[T3]-1;
 	float dedt;
 	while(!turnDone)
 	{
@@ -487,19 +507,29 @@ void PIDDegmove(int degrees)
 		power = (error * kP) + (totalError * kI) + (dedt * kD);
 		motor[frontLeft] = motor[backLeft] = power;
 		motor[frontRight] = motor[backRight] = power;
-		if(abs(error) < 50 && !turnStartTimer)
+		writeDebugStreamLine("%d %d %d %d", error, power, turnStartTimer, turnEndTime);
+		if(abs(error) < 50 && turnStartTimer == 0)
 		{
+			writeDebugStreamLine("here1");
 			turnStartTimer = 1;
-			turnEndTime = time1[T3] + 750;
+			turnEndTime = time1[T3] + 350;
 		}
-		else if(abs(error) > 50)
+		else if(abs(power) < 20 && turnStartTimer == 0)
 		{
-			turnStartTimer = 0;
+			writeDebugStreamLine("here2");
+			turnStartTimer = 1;
+			turnEndTime = time1[T3] + 350;
 		}
+		if(abs(error) > 51 && abs(power) > 21)
+			turnStartTimer = 0;
 		if(turnStartTimer && turnEndTime < time1[T3])
 		{
 			turnDone = 1;
+			return;
+			break;
 		}
+		if((time1[T3] - startTime) > 5000)
+			return;
 		lastError = error;
 		lastTime = time1[T3];
 		wait1Msec(75);
@@ -507,16 +537,19 @@ void PIDDegmove(int degrees)
 }
 void setUpChainBar()
 {
-	motor[chainbar] = 127;
-	wait1Msec(1500);
-	motor[chainbar] = -80;
-	wait1Msec(800);
-	nMotorEncoder[chainbar] = 0;
-	setUpChainbarDone = 1;
+	if(setUpChainbarDone == 0)
+	{
+		motor[chainbar] = 127;
+		wait1Msec(2000);
+		motor[chainbar] = -80;
+		wait1Msec(1000);
+		nMotorEncoder[chainbar] = 0;
+		setUpChainbarDone = 1;
+	}
 }
 /*
 Effects of increasing a parameter independently[21][22]
-    Rise time			Overshoot	Settling time	Steady-state error	Stability
+Rise time			Overshoot	Settling time	Steady-state error	Stability
 kP	Decrease			Increase	Small change	Decrease						Degrade
 kI	Decrease			Increase	Increase			Eliminate						Degrade
 kD	Minor change	Decrease	Decrease			No effect in theory	Improve if kD small

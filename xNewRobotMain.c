@@ -36,7 +36,7 @@
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 1, TEST = 5; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST = 3; // Manual Autonomous Test Controls
 void pre_auton()
 {
 	startTask(batLevel, 0);
@@ -51,7 +51,6 @@ void pre_auton()
 }
 task autonomous()
 {
-	setUpChainBar();
 	// SmartMotorRun();
 	startTask(batLevel, 0);
 	if(RUNTEST == 1 && TEST == 0)
@@ -61,10 +60,12 @@ task autonomous()
 	if(RUNTEST == 1 && TEST == 2)
 		testLargeGyroturn();
 	if(MyAutonomous == 0 || (RUNTEST == 1 && TEST == 3))
-		mobileGoalAuto(LEFT);
+		mobileGoalTenAuto();
 	if(MyAutonomous == 1 || (RUNTEST == 1 && TEST == 4))
-		mobileGoalAuto(RIGHT);
+		mobileGoalTwenAuto(LEFT);
 	if(MyAutonomous == 2 || (RUNTEST == 1 && TEST == 5))
+		mobileGoalTwenAuto(RIGHT);
+	if(MyAutonomous == 3 || (RUNTEST == 1 && TEST == 6))
 		programmingSkills();
 }
 int EMERGENCY_MODE = 0;
@@ -75,14 +76,6 @@ int lastManualChainBar = 0;
 task usercontrol()
 {
 	//SmartMotorRun();
-	if(!setUpChainbarDone)
-	{
-		motor[chainbar] = 127;
-		wait1Msec(1500);
-		motor[chainbar] = -80;
-		wait1Msec(800);
-		nMotorEncoder[chainbar] = 0;
-	}
 	startTask(WATCHDOG);
 	startTask(batLevel, 0);
 	while (true)
@@ -187,16 +180,19 @@ task usercontrol()
 				chainBarSetpoint = nMotorEncoder[chainbar];
 			lastManualChainBar = 0;
 			chainBarPIDActive = 1;
+			motor[chainbar] = 0;
 		}
 
 		// Claw
 		if(vexRT[Btn6D])
 		{
 			clawSetpoint = clawOpen;
+			motor[claw] = clawOpen;
 		}
 		else if(vexRT[Btn5D])
 		{
 			clawSetpoint = clawClosed;
+			motor[claw] = clawClosed;
 		}
 		// RESET
 		if(resetButton)
