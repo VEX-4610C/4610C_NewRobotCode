@@ -42,8 +42,7 @@ void testLargeGyroturn()
 void mobileGoalTenAuto()
 {
 	startTask(WATCHDOG);
-	startTask(autoStacker);
-
+	startTask(setUpChainBar, 6);
 	mobileDown();
 	degmove(55);
 	mobileUp();
@@ -59,7 +58,7 @@ void mobileGoalTenAuto()
 void mobileGoalTwenAuto(int wall)
 {
 	startTask(WATCHDOG);
-
+	startTask(setUpChainBar, 6);
 	int turnMult = wall == LEFT ? 1 : -1;
 	mobileGoalSetpoint = mobileGoalDown;
 	wait1Msec(500);

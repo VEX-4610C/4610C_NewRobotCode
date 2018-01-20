@@ -68,16 +68,18 @@ task autonomous()
 	if(MyAutonomous == 3 || (RUNTEST == 1 && TEST == 6))
 		programmingSkills();
 }
-int EMERGENCY_MODE = 0;
-int left = 0, right = 0;
-int lastManualMobileGoal = 0;
-int lastManualLift = 0;
-int lastManualChainBar = 0;
+
 task usercontrol()
 {
 	//SmartMotorRun();
 	startTask(WATCHDOG);
 	startTask(batLevel, 0);
+	startTask(autoStacker);
+	doubleSetpoint = doubleDown;
+	chainBarSetpoint = chainBarDown;
+	int left = 0, right = 0;
+	int lastManualLift = 0;
+	int lastManualChainBar = 0;
 	while (true)
 	{
 		// Drive Code
@@ -91,24 +93,7 @@ task usercontrol()
 		motor[frontRight] = motor[backRight] = ((int) right) * sign(vexRT[Ch2]);
 
 		// Mobile Goal
-		if(EMERGENCY_MODE && vexRT[Btn7D])
-		{
-			mobilePIDActive = 0;
-			lastManualMobileGoal = 1;
-			SetMotor(mobileGoal, 127);
-		}
-		else if(EMERGENCY_MODE && vexRT[Btn8D])
-		{
-			mobilePIDActive = 0;
-			lastManualMobileGoal = 1;
-			SetMotor(mobileGoal, -127);
-		}
-		else if(mobilePIDActive == 0 && lastManualMobileGoal == 1)
-		{
-			mobilePIDActive = 1;
-			mobileGoalSetpoint = nMotorEncoder[mobileGoal];
-		}
-		else if(vexRT[Btn7D])
+		if(vexRT[Btn7D])
 		{
 			mobilePIDActive = 1;
 			mobileGoalSetpoint = mobileGoalDown;
@@ -125,7 +110,7 @@ task usercontrol()
 			while(vexRT[Btn8L]) { wait1Msec(20); }
 			doubleStackLoader = toggle(doubleStackLoader); // 0 -> 1-0 = 1 ; 1 -> 1-1 = 0 -- Toggle Shorthand
 		}
-		if(vexRT[Btn5U])
+		if(vexRT[Btn5U] && currentStacked > 0)
 		{
 			while(vexRT[Btn5U]) { wait1Msec(20); }
 			currentStacked--;

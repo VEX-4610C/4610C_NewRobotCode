@@ -8,7 +8,8 @@
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[10] = {0, 0, 150, 400, 400, 450, 700, 750, 800, 850};
+const int doubleStackUp[15] = {0, 0, 150, 400, 400, 450, 700, 750, 800, 850,
+	900, 950, 1000, 1050, 1100};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -30,6 +31,8 @@ int mobilePIDActive = 1;
 #define chainBarPreload 400
 #define chainBarStack 0
 #define chainBarPassPos 700
+#define chainBarPassLock 400
+#define chainBarMobileGoal 500
 #define chainBarKP 0.6
 #define chainBarKI 0
 #define chainBarKD 0
@@ -39,7 +42,6 @@ int chainBarSetpoint = chainBarUp;
 int chainBarError = 0;
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
-int setUpChainbarDone = 0;
 
 #define clawOpen 30
 #define clawClosed 85
@@ -50,7 +52,7 @@ int activateAutoStacker = 0;
 int currentStacked = 0;
 int pidActive = 1;
 
-#define HOLDOUT 750
+#define HOLDOUT 300
 
 task WATCHDOG
 {
@@ -67,10 +69,9 @@ task WATCHDOG
 	pos_PID mobilePID;
 	pos_PID_InitController(&mobilePID, mobilePot, mobileKP, mobileKI, mobileKD);
 	// Claw PID Controller
-	int x;
+	int doublePower, mobilePower, chainbarPower;
 	while(1)
 	{
-		writeDebugStreamLine("%d", pos_PID_GetError(&chainbarPID));
 		if(pidActive)
 		{
 			pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
@@ -81,27 +82,29 @@ task WATCHDOG
 			if(abs(pos_PID_GetError(&mobilePID)) > 150)
 			{
 				pos_PID_SetTargetPosition(&doublePID, max(doubleSetpoint, doubleMobileGoal));
+				pos_PID_SetTargetPosition(&chainbarPID, min(chainBarSetpoint, chainBarMobileGoal));
 			}
 			if(doublePIDActive)
 			{
-				x = pos_PID_StepController(&doublePID);
-				x = abs(x) < 15 ? 0 : x;
-				SetMotor(doubleLeft, x);
-				SetMotor(doubleRight, x);
+				doublePower = pos_PID_StepController(&doublePID);
+				doublePower = abs(doublePower) < 15 ? 0 : doublePower;
+				SetMotor(doubleLeft, doublePower);
+				SetMotor(doubleRight, doublePower);
 			}
 			if(mobilePIDActive)
 			{
-				x = pos_PID_StepController(&mobilePID);
-				x = abs(x) < 15 ? 0 : x;
-				SetMotor(mobileGoal,  x);
+				mobilePower = pos_PID_StepController(&mobilePID);
+				mobilePower = abs(mobilePower) < 15 ? 0 : mobilePower;
+				SetMotor(mobileGoal,  mobilePower);
 			}
 			if(chainBarPIDActive)
 			{
-				SetMotor(chainbar, pos_PID_StepController(&chainbarPID));
+				chainbarPower = pos_PID_StepController(&chainbarPID);
+				SetMotor(chainbar, chainbarPower);
 			}
 			motor[claw] = clawSetpoint;
 			// Dones
-			if(abs(pos_PID_GetError(&doublePID)) < 50)
+			if(abs(pos_PID_GetError(&doublePID)) < 50 || abs(doublePower) < 25)
 			{
 				if(doubleStartTimer == 0)
 					doubleEndTime = time1[T1] + HOLDOUT;
@@ -119,7 +122,7 @@ task WATCHDOG
 			{
 				doubleDone = 0;
 			}
-			if(abs(pos_PID_GetError(&mobilePID)) < 150)
+			if(abs(pos_PID_GetError(&mobilePID)) < 150 || abs(mobilePower) < 25)
 			{
 				if(mobileStartTimer == 0)
 					mobileEndTime = time1[T1] + HOLDOUT;
@@ -137,7 +140,7 @@ task WATCHDOG
 			{
 				mobileDone = 0;
 			}
-			if(abs(pos_PID_GetError(&chainbarPID)) < 50)
+			if(abs(pos_PID_GetError(&chainbarPID)) < 50 || abs(chainbarPower) < 30)
 			{
 				if(chainBarStartTimer == 0)
 					chainBarEndTime = time1[T1] + HOLDOUT;
@@ -171,6 +174,7 @@ task autoStacker
 	5. Lower Chainbar
 	6. Lower DR4B
 	*/
+	int limitNum = sizeof(doubleStackUp) / sizeof(int);
 	while(1)
 	{
 		if(activateAutoStacker && !lastAutostacker)
@@ -181,7 +185,7 @@ task autoStacker
 		{
 			lastAutostacker = 0;
 		}
-		else if(activateAutoStacker && currentStacked < 10)
+		else if(activateAutoStacker && currentStacked < limitNum)
 		{
 			if(innerState == 0)
 			{
@@ -200,7 +204,7 @@ task autoStacker
 			}
 			else if(innerState == 2)
 			{
-				if(doubleDone)
+				if(doubleDone) // doubleError < 350
 				{
 					chainBarSetpoint = chainBarUp;
 					innerState++;
@@ -208,7 +212,7 @@ task autoStacker
 			}
 			else if(innerState == 3)
 			{
-				if(doubleDone)
+				if(chainBarDone)
 				{
 					clawSetpoint = clawOpen;
 					innerState++;
@@ -216,7 +220,7 @@ task autoStacker
 			}
 			else if(innerState == 4)
 			{
-				if(doubleDone)
+				if(clawDone)
 				{
 					if(doubleStackLoader)
 					{
@@ -230,7 +234,7 @@ task autoStacker
 			}
 			else if(innerState == 5)
 			{
-				if(chainBarDone)
+				if(chainBarDone) // encoder > 350
 				{
 					doubleSetpoint = doubleDown;
 				}
@@ -404,37 +408,6 @@ task batLevel
 		wait1Msec(25);
 	}
 }
-void oldegmove(int distance)
-{
-	nMotorEncoder[frontLeft] = 0;
-	distance *= 15;
-	if(distance > 0) // move forward
-	{
-		while(abs(nMotorEncoder[frontLeft]) < distance)
-		{
-			motor[frontLeft] = motor[backLeft] = abs(nMotorEncoder[frontLeft] - distance) * .2 + 35;
-			motor[frontRight] = motor[backRight] = abs(nMotorEncoder[frontLeft] - distance) * .2 + 35;
-		}
-		motor[frontLeft] = motor[backLeft] = -15;
-		motor[frontRight] = motor[backRight] = -15;
-		wait1Msec(100);
-		motor[frontLeft] = motor[backLeft] = 0;
-		motor[frontRight] = motor[backRight] = 0;
-	}
-	else
-	{
-		while(abs(nMotorEncoder[frontLeft]) < abs(distance))
-		{
-			motor[frontLeft] = motor[backLeft] = -1*(abs(nMotorEncoder[frontLeft] - distance) * .2 + 35);
-			motor[frontRight] = motor[backRight] = -1*(abs(nMotorEncoder[frontLeft] - distance) * .2 + 35);
-		}
-		motor[frontLeft] = motor[backLeft] = 15;
-		motor[frontRight] = motor[backRight] = 15;
-		wait1Msec(100);
-		motor[frontLeft] = motor[backLeft] = 0;
-		motor[frontRight] = motor[backRight] = 0;
-	}
-}
 void gyroturn(float degrees, int mG)
 {
 	degrees = degrees;
@@ -451,13 +424,11 @@ void gyroturn(float degrees, int mG)
 	while(!turnDone)
 	{
 		error = degrees + SensorValue[gyro];
-		writeDebugStreamLine("%d %d %d", degrees, SensorValue[gyro], error);
 		dedt = (error - lastError) / (time1[T3] - lastTime);
 		totalError += dedt;
 		power = (error * kP) + (totalError * kI / (time1[T3] - startTime)) + (dedt * kD);
 		motor[frontLeft] = motor[backLeft] = power;
 		motor[frontRight] = motor[backRight] = -power;
-		writeDebugStreamLine("%d", error - lastError);
 		if(abs(error) < 50 && !turnStartTimer)
 		{
 			turnStartTimer = 1;
@@ -472,12 +443,11 @@ void gyroturn(float degrees, int mG)
 		{
 			turnStartTimer = 0;
 		}
-		else if(time1[T3] - startTime > 4250)
+		if(turnStartTimer && turnEndTime < time1[T3])
 		{
-			turnStartTimer = 1;
-			turnEndTime = time1[T3] + 750;
+			turnDone = 1;
 		}
-		if(turnStartTimer && turnEndTime < time1[T3] && time1[T3] - startTime < 4250)
+		if((time1[T3] - startTime) > 5000)
 		{
 			turnDone = 1;
 		}
@@ -493,13 +463,13 @@ void degmove(int degrees)
 	float kP = 0.28;
 	float kI = 0;
 	float kD = 0;
-	int turnDone = 0;
-	int turnStartTimer, turnEndTime;
+	int moveDone = 0;
+	int moveStartTimer, moveEndTime;
 	int error, power;
 	int totalError, lastError = degrees - nMotorEncoder[frontLeft], lastTime = time1[T3]-1;
 	int startTime = time1[T3]-1;
 	float dedt;
-	while(!turnDone)
+	while(!moveDone)
 	{
 		error = degrees - nMotorEncoder[frontLeft];
 		dedt = (error - lastError) / (time1[T3] - lastTime);
@@ -507,49 +477,47 @@ void degmove(int degrees)
 		power = (error * kP) + (totalError * kI) + (dedt * kD);
 		motor[frontLeft] = motor[backLeft] = power;
 		motor[frontRight] = motor[backRight] = power;
-		writeDebugStreamLine("%d %d %d %d", error, power, turnStartTimer, turnEndTime);
-		if(abs(error) < 50 && turnStartTimer == 0)
+		if(abs(error) < 50 && moveStartTimer == 0)
 		{
-			writeDebugStreamLine("here1");
-			turnStartTimer = 1;
-			turnEndTime = time1[T3] + 350;
+			moveStartTimer = 1;
+			moveEndTime = time1[T3] + 350;
 		}
-		else if(abs(power) < 20 && turnStartTimer == 0)
+		else if(abs(power) < 20 && moveStartTimer == 0)
 		{
-			writeDebugStreamLine("here2");
-			turnStartTimer = 1;
-			turnEndTime = time1[T3] + 350;
+			moveStartTimer = 1;
+			moveEndTime = time1[T3] + 350;
 		}
 		if(abs(error) > 51 && abs(power) > 21)
-			turnStartTimer = 0;
-		if(turnStartTimer && turnEndTime < time1[T3])
 		{
-			turnDone = 1;
-			return;
-			break;
+			moveStartTimer = 0;
+		}
+		if(moveStartTimer && moveEndTime < time1[T3])
+		{
+			moveDone = 1;
 		}
 		if((time1[T3] - startTime) > 5000)
-			return;
+		{
+			moveDone = 1;
+		}
 		lastError = error;
 		lastTime = time1[T3];
 		wait1Msec(75);
 	}
 }
-void setUpChainBar()
+task setUpChainBar()
 {
-	if(setUpChainbarDone == 0)
-	{
-		motor[chainbar] = 127;
-		wait1Msec(2000);
-		motor[chainbar] = -80;
-		wait1Msec(1000);
-		nMotorEncoder[chainbar] = 0;
-		setUpChainbarDone = 1;
-	}
+	chainBarSetpoint = chainBarPassLock;
+	wait1Msec(500);
+	while(!chainBarDone) { wait1Msec(20); }
+	chainBarPIDActive = 0;
+	motor[chainbar] = -80;
+	wait1Msec(1000);
+	nMotorEncoder[chainbar] = 0;
+	chainBarPIDActive = 1;
 }
 /*
 Effects of increasing a parameter independently[21][22]
-Rise time			Overshoot	Settling time	Steady-state error	Stability
+Rise time					Overshoot	Settling time	Steady-state error	Stability
 kP	Decrease			Increase	Small change	Decrease						Degrade
 kI	Decrease			Increase	Increase			Eliminate						Degrade
 kD	Minor change	Decrease	Decrease			No effect in theory	Improve if kD small
