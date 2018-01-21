@@ -87,15 +87,18 @@ void programmingSkills()
 	degmove(40);
 	mobileUp();
 	clawSetpoint = clawOpen;
-	degmove(-20);
-	gyroturn(1950, 1);
-	degmove(30);
+	degmove(-22);
+	gyroturn(-900, 1);
+	degmove(15);
+	gyroturn(-800, 1);
+	degmove(25);
 	mobileDown();
 	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 127;
 	wait1Msec(1000);
 	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 0;
 	degmove(-30);
 	mobileUp();
-	gyroturn(600, 0);
+	degmove(-30)
+	gyroturn(625, 0);
 	degmove(-60);
 }

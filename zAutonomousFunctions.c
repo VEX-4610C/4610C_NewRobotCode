@@ -2,14 +2,14 @@
 #define doubleDown 0
 #define doublePreload 0
 #define doubleMobileGoal 250
-#define doubleFixedGoal 800
-#define doubleKP 0.8
+#define doubleFixedGoal 950
+#define doubleKP 1
 #define doubleKI 0
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {0, 0, 150, 400, 400, 450, 700, 750, 800, 850,
-	900, 950, 1000, 1050, 1100};
+const int doubleStackUp[15] = {0, 0, 200, 350, 450, 500, 650, 700, 800, 850,
+	950, 1000, 1150, 1200, 1250};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -27,24 +27,24 @@ int mobileDone = 0;
 int mobilePIDActive = 1;
 
 #define chainBarUp 0
-#define chainBarDown 850
-#define chainBarPreload 400
-#define chainBarStack 0
-#define chainBarPassPos 700
-#define chainBarPassLock 400
-#define chainBarMobileGoal 500
-#define chainBarKP 0.6
+#define chainBarPreload -50
+#define chainBarStack 50
+#define chainBarPassPos -400
+#define chainBarPassLock -250
+#define chainBarKP 1.25
 #define chainBarKI 0
-#define chainBarKD 0
+#define chainBarKD 0.02
 #define chainBarDIVISOR 1
 #define chainBarSensor chainbar
 int chainBarSetpoint = chainBarUp;
+int chainBarDown = -820;
 int chainBarError = 0;
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
+bool chainBarSetupDone = false;
 
 #define clawOpen 30
-#define clawClosed 85
+#define clawClosed 95
 #define clawDone 1
 int clawSetpoint = clawOpen;
 
@@ -52,7 +52,7 @@ int activateAutoStacker = 0;
 int currentStacked = 0;
 int pidActive = 1;
 
-#define HOLDOUT 300
+#define HOLDOUT 400
 
 task WATCHDOG
 {
@@ -82,7 +82,6 @@ task WATCHDOG
 			if(abs(pos_PID_GetError(&mobilePID)) > 150)
 			{
 				pos_PID_SetTargetPosition(&doublePID, max(doubleSetpoint, doubleMobileGoal));
-				pos_PID_SetTargetPosition(&chainbarPID, min(chainBarSetpoint, chainBarMobileGoal));
 			}
 			if(doublePIDActive)
 			{
@@ -100,7 +99,8 @@ task WATCHDOG
 			if(chainBarPIDActive)
 			{
 				chainbarPower = pos_PID_StepController(&chainbarPID);
-				SetMotor(chainbar, chainbarPower);
+				chainbarPower = abs(chainbarPower) > 25 ? chainbarPower : 0;
+				motor[chainbar] = chainbarPower;
 			}
 			motor[claw] = clawSetpoint;
 			// Dones
@@ -140,7 +140,7 @@ task WATCHDOG
 			{
 				mobileDone = 0;
 			}
-			if(abs(pos_PID_GetError(&chainbarPID)) < 50 || abs(chainbarPower) < 30)
+			if(abs(pos_PID_GetError(&chainbarPID)) < 50)
 			{
 				if(chainBarStartTimer == 0)
 					chainBarEndTime = time1[T1] + HOLDOUT;
@@ -190,12 +190,13 @@ task autoStacker
 			if(innerState == 0)
 			{
 				clawSetpoint = clawClosed;
-				chainBarSetpoint = chainBarPassPos;
+				if(!doubleStackLoader)
+					chainBarSetpoint = chainBarPassPos;
 				innerState++;
 			}
 			else if(innerState == 1)
 			{
-				if(clawDone)
+				if(1)
 				{
 					doubleDone = 0;
 					doubleSetpoint = doubleStackUp[currentStacked];
@@ -204,15 +205,15 @@ task autoStacker
 			}
 			else if(innerState == 2)
 			{
-				if(doubleDone) // doubleError < 350
+				if(abs(doubleError) < 350)
 				{
-					chainBarSetpoint = chainBarUp;
+					chainBarSetpoint = chainBarStack;
 					innerState++;
 				}
 			}
 			else if(innerState == 3)
 			{
-				if(chainBarDone)
+				if(chainBarDone || vexRT[Btn7RXmtr2])
 				{
 					clawSetpoint = clawOpen;
 					innerState++;
@@ -220,7 +221,7 @@ task autoStacker
 			}
 			else if(innerState == 4)
 			{
-				if(clawDone)
+				if(1)
 				{
 					if(doubleStackLoader)
 					{
@@ -230,15 +231,17 @@ task autoStacker
 					{
 						chainBarSetpoint = chainBarPassPos;
 					}
+					innerState++;
 				}
 			}
 			else if(innerState == 5)
 			{
-				if(chainBarDone) // encoder > 350
+				if(nMotorEncoder[chainbar] < -150) // encoder > 350
 				{
 					doubleSetpoint = doubleDown;
+					innerState++;
 				}
-				innerState++;
+
 			}
 			else if(innerState == 6)
 			{
@@ -475,7 +478,7 @@ void degmove(int degrees)
 		dedt = (error - lastError) / (time1[T3] - lastTime);
 		totalError += dedt;
 		power = (error * kP) + (totalError * kI) + (dedt * kD);
-		motor[frontLeft] = motor[backLeft] = power;
+		motor[frontLeft] = motor[backLeft] = power * 0.82;
 		motor[frontRight] = motor[backRight] = power;
 		if(abs(error) < 50 && moveStartTimer == 0)
 		{
@@ -506,14 +509,19 @@ void degmove(int degrees)
 }
 task setUpChainBar()
 {
-	chainBarSetpoint = chainBarPassLock;
-	wait1Msec(500);
-	while(!chainBarDone) { wait1Msec(20); }
-	chainBarPIDActive = 0;
-	motor[chainbar] = -80;
-	wait1Msec(1000);
-	nMotorEncoder[chainbar] = 0;
-	chainBarPIDActive = 1;
+	if(chainBarSetupDone == false)
+	{
+		chainBarPIDActive = 0;
+		motor[chainbar] = -127;
+		wait1Msec(1000);
+		motor[chainbar] = 127;
+		wait1Msec(750);
+		motor[chainbar] = 0;
+		nMotorEncoder[chainbar] = 0;
+		wait1Msec(750);
+		chainBarPIDActive = 1;
+		chainBarSetupDone = true;
+	}
 }
 /*
 Effects of increasing a parameter independently[21][22]
