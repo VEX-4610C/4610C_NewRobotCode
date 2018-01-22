@@ -15,6 +15,7 @@ int doubleError = 0;
 int doubleDone = 0;
 int doubleStackLoader = 0;
 int doublePIDActive = 1;
+int finishStack = 0;
 
 #define mobileGoalDown 3400
 #define mobileGoalUp 1200
@@ -27,26 +28,26 @@ int mobileDone = 0;
 int mobilePIDActive = 1;
 
 #define chainBarUp 0
+#define chainBarDown -820
 #define chainBarPreload -50
 #define chainBarStack 50
 #define chainBarPassPos -400
-#define chainBarPassLock -250
 #define chainBarKP 1.25
 #define chainBarKI 0
 #define chainBarKD 0.02
 #define chainBarDIVISOR 1
 #define chainBarSensor chainbar
 int chainBarSetpoint = chainBarUp;
-int chainBarDown = -820;
 int chainBarError = 0;
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
 bool chainBarSetupDone = false;
 
-#define clawOpen 30
-#define clawClosed 95
-#define clawDone 1
-int clawSetpoint = clawOpen;
+#define rollerIn 127
+#define rollerOut -127
+#define rollerStop 0
+#define rollerDone 1
+int rollerSetpoint = 0;
 
 int activateAutoStacker = 0;
 int currentStacked = 0;
@@ -102,7 +103,7 @@ task WATCHDOG
 				chainbarPower = abs(chainbarPower) > 25 ? chainbarPower : 0;
 				motor[chainbar] = chainbarPower;
 			}
-			motor[claw] = clawSetpoint;
+			motor[rollerMotor] = rollerSetpoint;
 			// Dones
 			if(abs(pos_PID_GetError(&doublePID)) < 50 || abs(doublePower) < 25)
 			{
@@ -189,7 +190,10 @@ task autoStacker
 		{
 			if(innerState == 0)
 			{
-				clawSetpoint = clawClosed;
+				chainBarSetpoint = chainBarDown;
+				rollerSetpoint = rollerIn;
+				wait1Msec(300);
+				rollerSetpoint = rollerStop;
 				if(!doubleStackLoader)
 					chainBarSetpoint = chainBarPassPos;
 				innerState++;
@@ -215,7 +219,9 @@ task autoStacker
 			{
 				if(chainBarDone || vexRT[Btn7RXmtr2])
 				{
-					clawSetpoint = clawOpen;
+					rollerSetpoint = rollerOut;
+					wait1Msec(500);
+					rollerSetpoint = rollerStop;
 					innerState++;
 				}
 			}
@@ -245,14 +251,6 @@ task autoStacker
 			}
 			else if(innerState == 6)
 			{
-				if(doubleStackLoader)
-				{
-					chainBarSetpoint = chainBarPreload;
-				}
-				else
-				{
-					chainBarSetpoint = chainBarDown;
-				}
 				activateAutoStacker = 0;
 				currentStacked++;
 				innerState = 0;
@@ -461,25 +459,29 @@ void gyroturn(float degrees, int mG)
 }
 void degmove(int degrees)
 {
+	SensorValue[gyro] = 0;
 	nMotorEncoder[frontLeft] = 0;
 	degrees *= 25;
 	float kP = 0.28;
 	float kI = 0;
 	float kD = 0;
+	float gyroKP = 0.05;
 	int moveDone = 0;
 	int moveStartTimer, moveEndTime;
 	int error, power;
 	int totalError, lastError = degrees - nMotorEncoder[frontLeft], lastTime = time1[T3]-1;
 	int startTime = time1[T3]-1;
 	float dedt;
+	int gyroAdj;
 	while(!moveDone)
 	{
 		error = degrees - nMotorEncoder[frontLeft];
 		dedt = (error - lastError) / (time1[T3] - lastTime);
 		totalError += dedt;
 		power = (error * kP) + (totalError * kI) + (dedt * kD);
-		motor[frontLeft] = motor[backLeft] = power * 0.82;
-		motor[frontRight] = motor[backRight] = power;
+		gyroAdj = SensorValue[gyro] * gyroKP;
+		motor[frontLeft] = motor[backLeft] = power + gyroAdj;
+		motor[frontRight] = motor[backRight] = power - gyroAdj;
 		if(abs(error) < 50 && moveStartTimer == 0)
 		{
 			moveStartTimer = 1;

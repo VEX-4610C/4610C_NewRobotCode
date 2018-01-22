@@ -11,7 +11,7 @@
 #pragma config(Motor,  port4,           doubleLeft,    tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_2)
 #pragma config(Motor,  port5,           chainbar,      tmotorVex393_MC29, openLoop, encoderPort, I2C_3)
 #pragma config(Motor,  port6,           doubleRight,   tmotorVex393_MC29, openLoop)
-#pragma config(Motor,  port7,           claw,          tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port7,           rollerMotor,   tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port8,           frontLeft,     tmotorVex393_MC29, openLoop, encoderPort, I2C_1)
 #pragma config(Motor,  port9,           backRight,     tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port10,          frontRight,    tmotorVex393_HBridge, openLoop)
@@ -46,7 +46,6 @@ void pre_auton()
 	bStopTasksBetweenModes = true;
 	if(!RUNTEST)
 		LcdAutonomousSelection();
-	motor[claw] = clawClosed;
 }
 task autonomous()
 {
@@ -139,6 +138,7 @@ task usercontrol()
 			SetMotor(doubleRight, -127);
 			lastManualLift = 1;
 			activateAutoStacker = 0;
+			finishStack = 0;
 		}
 		else if(vexRT[Btn8R])
 		{
@@ -147,6 +147,7 @@ task usercontrol()
 			SetMotor(doubleRight, 127);
 			lastManualLift = 1;
 			activateAutoStacker = 0;
+			finishStack = 0;
 		}
 		else if(vexRT[Btn6U])
 		{
@@ -186,13 +187,18 @@ task usercontrol()
 		// Claw
 		if(vexRT[Btn5D])
 		{
-			clawSetpoint = clawOpen;
-			motor[claw] = clawOpen;
+			rollerSetpoint = rollerIn;
+			chainBarSetpoint = chainBarDown;
 		}
 		else if(vexRT[Btn6D])
 		{
-			clawSetpoint = clawClosed;
-			motor[claw] = clawClosed;
+			rollerSetpoint = rollerOut;
+			chainBarSetpoint = chainBarPassPos;
+		}
+		else
+		{
+			rollerSetpoint = rollerStop;
+			chainBarSetpoint = chainBarPassPos;
 		}
 		// RESET
 		if(resetButton)
@@ -209,6 +215,22 @@ task usercontrol()
 		{
 			doubleSetpoint = doubleFixedGoal;
 			chainBarSetpoint = chainBarPassPos;
+		}
+		if(0) // FINISH STACK BUTTON
+		{
+			finishStack = 1;
+		}
+		if(finishStack)
+		{
+			doubleSetpoint = doubleStackUp[currentStacked];
+			if(doubleError < 300)
+			{
+				chainBarSetpoint = chainBarStack;
+			}
+			if(chainBarSetpoint == chainBarStack && chainBarDone && doubleDone)
+			{
+				finishStack = 1;
+			}
 		}
 
 	}

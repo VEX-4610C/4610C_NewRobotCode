@@ -47,7 +47,6 @@ void mobileGoalTenAuto()
 	degmove(55);
 	mobileUp();
 	degmove(-40);
-	clawSetpoint = clawOpen;
 
 	gyroturn(1700,1);
 	degmove(20);
@@ -65,7 +64,9 @@ void mobileGoalTwenAuto(int wall)
 	degmove(55);
 	mobileUp();
 	degmove(-45);
-	clawSetpoint = clawOpen;
+	rollerSetpoint = rollerOut;
+	wait1Msec(500);
+	rollerSetpoint = rollerStop;
 	gyroturn(-450 * turnMult, 1);
 	degmove(-20);
 	gyroturn(-750 * turnMult, 1);
@@ -86,7 +87,9 @@ void programmingSkills()
 	mobileDown();
 	degmove(40);
 	mobileUp();
-	clawSetpoint = clawOpen;
+	rollerSetpoint = rollerOut;
+	wait1Msec(500);
+	rollerSetpoint = rollerStop;
 	degmove(-22);
 	gyroturn(-900, 1);
 	degmove(15);
@@ -98,7 +101,7 @@ void programmingSkills()
 	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 0;
 	degmove(-30);
 	mobileUp();
-	degmove(-30)
+	degmove(-30);
 	gyroturn(625, 0);
 	degmove(-60);
 }
