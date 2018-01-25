@@ -5,11 +5,10 @@
 #pragma config(Sensor, in4,    peStatus,       sensorAnalog)
 #pragma config(Sensor, I2C_1,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
-#pragma config(Sensor, I2C_3,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Motor,  port2,           mobileGoal,    tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port3,           backLeft,      tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port4,           doubleLeft,    tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_2)
-#pragma config(Motor,  port5,           chainbar,      tmotorVex393_MC29, openLoop, encoderPort, I2C_3)
+#pragma config(Motor,  port5,           chainbar,      tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port6,           doubleRight,   tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port7,           rollerMotor,   tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port8,           frontLeft,     tmotorVex393_MC29, openLoop, encoderPort, I2C_1)
@@ -79,7 +78,8 @@ task usercontrol()
 	int left = 0, right = 0;
 	int lastManualLift = 0;
 	int lastManualChainBar = 0;
-	chainBarSetpoint = chainBarStack;
+	int lastResetChainBar = 0;
+	chainBarSetpoint = chainBarDown;
 	while (true)
 	{
 		// Drive Code
@@ -107,17 +107,18 @@ task usercontrol()
 		// Lift (Autostack and Manual)
 		if(vexRT[Btn8RXmtr2])
 		{
-			writeDebugStreamLine("here3");
 			while(vexRT[Btn8RXmtr2]) { wait1Msec(20); }
 			if(doubleStackLoader == 0)
 			{
 				doubleStackLoader = 1;
 				chainBarSetpoint = chainBarPreload;
+				doubleSetpoint = doublePreload;
 			}
 			else
 			{
 				doubleStackLoader = 0;
 				chainBarSetpoint = chainBarDown;
+				doubleSetpoint = doubleDown;
 			}
 		}
 		if(vexRT[Btn5U] && currentStacked > 0)
@@ -157,7 +158,7 @@ task usercontrol()
 		else if(doublePIDActive == 0 && lastManualLift == 1)
 		{
 			doublePIDActive = 1;
-			doubleSetpoint = nMotorEncoder[doubleLeft];
+			doubleSetpoint = nMotorEncoder[doubleLeft] + 50;
 		}
 		else
 		{
@@ -179,7 +180,7 @@ task usercontrol()
 		else
 		{
 			if(lastManualChainBar)
-				chainBarSetpoint = nMotorEncoder[chainbar];
+				chainBarSetpoint = SensorValue[chainBarPot];
 			lastManualChainBar = 0;
 			chainBarPIDActive = 1;
 		}
@@ -198,7 +199,7 @@ task usercontrol()
 		else
 		{
 			rollerSetpoint = rollerStop;
-			chainBarSetpoint = chainBarPassPos;
+			//chainBarSetpoint = chainBarDown;
 		}
 		// RESET
 		if(resetButton)
@@ -232,7 +233,19 @@ task usercontrol()
 				finishStack = 1;
 			}
 		}
-
+		if(vexRT[Btn7LXmtr2])
+		{
+			lastResetChainBar = 1;
+			chainBarPIDActive = 1;
+			motor[chainbar] = -127;
+		}
+		else
+		{
+			if(lastResetChainBar)
+				chainBarAdjustment = (chainBarStack - SensorValue[chainBarPot]);
+			lastResetChainBar = 0;
+			chainBarPIDActive = 1;
+		}
 	}
 
 }

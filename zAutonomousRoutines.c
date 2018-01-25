@@ -39,6 +39,16 @@ void testLargeGyroturn()
 								 mobileGoalSetpoint = mobileGoalDown; \
 								 wait1Msec(500); \
 								 while(!mobileDone) { wait1Msec(20); }
+#define intake() 	chainBarSetpoint = chainBarDown;    \
+									rollerSetpoint = rollerIn;         \
+									wait1Msec(500);									    \
+									rollerSetpoint = rollerStop;        \
+									chainBarSetpoint = chainBarPassPos \
+
+#define outtake() rollerSetpoint = rollerOut;         \
+									wait1Msec(500);									    \
+									rollerSetpoint = rollerStop         \
+
 void mobileGoalTenAuto()
 {
 	startTask(WATCHDOG);
@@ -46,6 +56,7 @@ void mobileGoalTenAuto()
 	mobileDown();
 	degmove(55);
 	mobileUp();
+	outtake();
 	degmove(-40);
 
 	gyroturn(1700,1);
@@ -64,9 +75,7 @@ void mobileGoalTwenAuto(int wall)
 	degmove(55);
 	mobileUp();
 	degmove(-45);
-	rollerSetpoint = rollerOut;
-	wait1Msec(500);
-	rollerSetpoint = rollerStop;
+	outtake();
 	gyroturn(-450 * turnMult, 1);
 	degmove(-20);
 	gyroturn(-750 * turnMult, 1);
@@ -87,9 +96,7 @@ void programmingSkills()
 	mobileDown();
 	degmove(40);
 	mobileUp();
-	rollerSetpoint = rollerOut;
-	wait1Msec(500);
-	rollerSetpoint = rollerStop;
+	outtake();
 	degmove(-22);
 	gyroturn(-900, 1);
 	degmove(15);
