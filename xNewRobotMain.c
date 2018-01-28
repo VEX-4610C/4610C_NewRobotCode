@@ -79,9 +79,11 @@ task usercontrol()
 	int lastManualLift = 0;
 	int lastManualChainBar = 0;
 	int lastResetChainBar = 0;
+	int lastIntakeRoller = 0;
 	chainBarSetpoint = chainBarDown;
 	while (true)
 	{
+		writeDebugStreamLine("%d", motor[chainbar]);
 		// Drive Code
 		left   = abs(vexRT[Ch3]);
 		right  = abs(vexRT[Ch2]);
@@ -111,14 +113,14 @@ task usercontrol()
 			if(doubleStackLoader == 0)
 			{
 				doubleStackLoader = 1;
-				chainBarSetpoint = chainBarPreload;
 				doubleSetpoint = doublePreload;
+				chainBarSetpoint = chainBarPreload;
 			}
 			else
 			{
 				doubleStackLoader = 0;
-				chainBarSetpoint = chainBarDown;
 				doubleSetpoint = doubleDown;
+				chainBarSetpoint = chainBarDown;
 			}
 		}
 		if(vexRT[Btn5U] && currentStacked > 0)
@@ -180,26 +182,31 @@ task usercontrol()
 		else
 		{
 			if(lastManualChainBar)
+			{
 				chainBarSetpoint = SensorValue[chainBarPot];
+				chainBarPIDActive = 1;
+			}
 			lastManualChainBar = 0;
-			chainBarPIDActive = 1;
 		}
 
 		// Claw
 		if(vexRT[Btn5D])
 		{
 			rollerSetpoint = rollerIn;
-			chainBarSetpoint = chainBarDown;
+			lastIntakeRoller = 1;
 		}
 		else if(vexRT[Btn6D])
 		{
 			rollerSetpoint = rollerOut;
-			chainBarSetpoint = chainBarPassPos;
+			lastIntakeRoller = -1;
 		}
 		else
 		{
-			rollerSetpoint = rollerStop;
-			//chainBarSetpoint = chainBarDown;
+			if(lastIntakeRoller == 1)
+				rollerSetpoint = rollerHold;
+			else if(lastIntakeRoller == -1)
+				rollerSetpoint = rollerStop;
+			lastIntakeRoller = 0;
 		}
 		// RESET
 		if(resetButton)

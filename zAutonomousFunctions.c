@@ -1,15 +1,16 @@
 //CONFIG PARAMETERS
 #define doubleDown 0
-#define doublePreload 250
+#define doublePreload 400
+#define doublePreloadIntake 275
 #define doubleMobileGoal 250
 #define doubleFixedGoal 950
 #define doubleKP 1.2
 #define doubleKI 0
-#define doubleKD 0.1
+#define doubleKD 0
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {0, 0, 200, 350, 450, 500, 650, 700, 800, 850,
-	950, 1000, 1150, 1200, 1250};
+const int doubleStackUp[15] = {0, 0, 150, 250, 350, 450, 525, 620, 730, 800,
+	900, 1000, 1150, 1200, 1250};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -27,12 +28,11 @@ int mobileDone = 0;
 int mobilePIDActive = 1;
 
 #define chainBarUp 150
-#define chainBarDown 3400
-#define chainBarPreload 2400
-#define chainBarPreloadIntake 2400
-#define chainBarStack 1300
-#define chainBarPassPos 2600
-#define chainBarKP 0.085
+#define chainBarDown 3800
+#define chainBarPreload 3000
+#define chainBarStack 850
+#define chainBarPassPos 3500
+#define chainBarKP 0.16
 #define chainBarKI 0
 #define chainBarKD 0.01
 #define chainBarSensor chainBarPot
@@ -46,6 +46,7 @@ bool chainBarSetupDone = false;
 #define rollerIn 127
 #define rollerOut -127
 #define rollerStop 0
+#define rollerHold 12
 #define rollerDone 1
 int rollerSetpoint = 0;
 
@@ -60,6 +61,7 @@ task WATCHDOG
 	int doubleStartTimer, doubleEndTime;
 	int mobileStartTimer, mobileEndTime;
 	int chainBarStartTimer, chainBarEndTime;
+	int lastChainBar = SensorValue[chainBarSensor];
 	// DR4B PID Controller
 	pos_PID doublePID;
 	pos_PID_InitController(&doublePID, doubleSensor, doubleKP, doubleKI, doubleKD);
@@ -75,6 +77,7 @@ task WATCHDOG
 	{
 		if(pidActive)
 		{
+
 			pos_PID_SetTargetPosition(&doublePID, doubleSetpoint);
 			pos_PID_SetTargetPosition(&chainbarPID, chainBarSetpoint);
 			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
@@ -100,6 +103,7 @@ task WATCHDOG
 			if(chainBarPIDActive)
 			{
 				chainbarPower = pos_PID_StepController(&chainbarPID);
+				chainbarPower = abs(chainbarPower) < 35 ? 0 : chainbarPower;
 				motor[chainbar] = chainbarPower;
 			}
 			motor[rollerMotor] = rollerSetpoint;
@@ -140,7 +144,8 @@ task WATCHDOG
 			{
 				mobileDone = 0;
 			}
-			if(abs(pos_PID_GetError(&chainbarPID)) < 150)
+
+			if(abs(pos_PID_GetError(&chainbarPID)) < 150 || abs(pos_PID_GetError(&chainbarPID) - lastChainBar) < 20)
 			{
 				if(chainBarStartTimer == 0)
 					chainBarEndTime = time1[T1] + HOLDOUT;
@@ -159,6 +164,7 @@ task WATCHDOG
 				chainBarDone = 0;
 			}
 			wait1Msec(25);
+			lastChainBar = pos_PID_GetError(&chainbarPID);
 		}
 	}
 }
@@ -189,13 +195,13 @@ task autoStacker
 		{
 			if(innerState == 0)
 			{
-				if(!doubleStackLoader)
-					chainBarSetpoint = chainBarDown;
-				else
-					chainBarSetpoint = chainBarPreloadIntake;
-				rollerSetpoint = rollerIn;
-				wait1Msec(300);
-				rollerSetpoint = rollerStop;
+				if(doubleStackLoader)
+				{
+					doubleSetpoint = doublePreloadIntake;
+					rollerSetpoint = rollerIn;
+					wait1Msec(450);
+				}
+				rollerSetpoint = rollerHold;
 				if(!doubleStackLoader)
 					chainBarSetpoint = chainBarPassPos;
 				else
@@ -223,13 +229,9 @@ task autoStacker
 			{
 				if(chainBarDone)
 				{
-					chainBarPIDActive = 0;
-					motor[chainbar] = -127;
-					wait1Msec(100);
 					rollerSetpoint = rollerOut;
 					wait1Msec(300);
 					rollerSetpoint = rollerStop;
-					chainBarPIDActive = 1;
 					innerState++;
 				}
 			}
@@ -239,11 +241,12 @@ task autoStacker
 				{
 					if(doubleStackLoader)
 					{
+						doubleSetpoint = doublePreload;
 						chainBarSetpoint = chainBarPreload;
 					}
 					else
 					{
-						chainBarSetpoint = chainBarPassPos;
+						chainBarSetpoint = chainBarDown;
 					}
 					innerState++;
 				}

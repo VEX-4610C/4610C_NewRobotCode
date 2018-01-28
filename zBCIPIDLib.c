@@ -36,7 +36,7 @@ typedef struct pos_PID_t
 
 	//Output
 	int outVal;
-	
+
 
 } pos_PID;
 
@@ -436,7 +436,6 @@ int pos_PID_StepController(pos_PID *pid, const float val)
 
 	return pid->outVal;
 }
-
 void SUPPRESS()
 {
 	SUPPRESS();
