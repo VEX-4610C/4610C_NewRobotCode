@@ -1,15 +1,15 @@
 //CONFIG PARAMETERS
 #define doubleDown 0
-#define doublePreload 400
-#define doublePreloadIntake 275
+#define doublePreload 350
+#define doublePreloadIntake -150
 #define doubleMobileGoal 250
 #define doubleFixedGoal 950
-#define doubleKP 1.2
+#define doubleKP 1.15
 #define doubleKI 0
-#define doubleKD 0
+#define doubleKD 0.01
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {0, 0, 150, 250, 350, 450, 525, 620, 730, 800,
+const int doubleStackUp[15] = {700, 0, 150, 300, 350, 450, 525, 620, 730, 800,
 	900, 1000, 1150, 1200, 1250};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
@@ -28,13 +28,14 @@ int mobileDone = 0;
 int mobilePIDActive = 1;
 
 #define chainBarUp 150
-#define chainBarDown 3800
-#define chainBarPreload 3000
+#define chainBarDown 3000
+#define chainBarPreload 2300
 #define chainBarStack 850
-#define chainBarPassPos 3500
-#define chainBarKP 0.16
-#define chainBarKI 0
-#define chainBarKD 0.01
+#define chainBarFirst 4300
+#define chainBarPassPos 2500
+#define chainBarKP 0.08
+#define chainBarKI 0.001
+#define chainBarKD 0.02
 #define chainBarSensor chainBarPot
 int chainBarSetpoint = chainBarUp;
 int chainBarError = 0;
@@ -103,7 +104,6 @@ task WATCHDOG
 			if(chainBarPIDActive)
 			{
 				chainbarPower = pos_PID_StepController(&chainbarPID);
-				chainbarPower = abs(chainbarPower) < 35 ? 0 : chainbarPower;
 				motor[chainbar] = chainbarPower;
 			}
 			motor[rollerMotor] = rollerSetpoint;
@@ -145,7 +145,7 @@ task WATCHDOG
 				mobileDone = 0;
 			}
 
-			if(abs(pos_PID_GetError(&chainbarPID)) < 150 || abs(pos_PID_GetError(&chainbarPID) - lastChainBar) < 20)
+			if(abs(pos_PID_GetError(&chainbarPID)) < 150 || (abs(pos_PID_GetError(&chainbarPID)) < 350 && (chainBarSetpoint < 1000 || chainBarSetpoint > 4000)))
 			{
 				if(chainBarStartTimer == 0)
 					chainBarEndTime = time1[T1] + HOLDOUT;
@@ -198,8 +198,9 @@ task autoStacker
 				if(doubleStackLoader)
 				{
 					doubleSetpoint = doublePreloadIntake;
+					wait1Msec(200);
 					rollerSetpoint = rollerIn;
-					wait1Msec(450);
+					wait1Msec(500);
 				}
 				rollerSetpoint = rollerHold;
 				if(!doubleStackLoader)
@@ -219,9 +220,12 @@ task autoStacker
 			}
 			else if(innerState == 2)
 			{
-				if(abs(doubleError) < 350)
+				if(abs(doubleError) < 300)
 				{
-					chainBarSetpoint = chainBarStack;
+					if(currentStacked == 0)
+						chainBarSetpoint = chainBarFirst;
+					else
+						chainBarSetpoint = chainBarStack;
 					innerState++;
 				}
 			}
@@ -229,10 +233,18 @@ task autoStacker
 			{
 				if(chainBarDone)
 				{
-					rollerSetpoint = rollerOut;
-					wait1Msec(300);
-					rollerSetpoint = rollerStop;
-					innerState++;
+					if(currentStacked == 11)
+					{
+						activateAutoStacker = 0;
+					}
+					else
+					{
+						rollerSetpoint = rollerOut;
+						wait1Msec(550);
+						rollerSetpoint = rollerStop;
+
+						innerState++;
+					}
 				}
 			}
 			else if(innerState == 4)
@@ -241,7 +253,10 @@ task autoStacker
 				{
 					if(doubleStackLoader)
 					{
-						doubleSetpoint = doublePreload;
+						if(currentStacked == 1)
+						{
+							doubleSetpoint = doublePreload;
+						}
 						chainBarSetpoint = chainBarPreload;
 					}
 					else
@@ -253,7 +268,7 @@ task autoStacker
 			}
 			else if(innerState == 5)
 			{
-				if(SensorValue[chainBarPot] > 2200) // encoder > 350
+				if(SensorValue[chainBarPot] > 1700) // encoder > 350
 				{
 					if(doubleStackLoader)
 						doubleSetpoint = doublePreload;
@@ -326,7 +341,7 @@ static int MyAutonomous = -1;
 /*-----------------------------------------------------------------------------*/
 
 // max number of auton choices
-#define MAX_CHOICE  4
+#define MAX_CHOICE  5
 
 void LcdAutonomousSet( int value, bool select = false )
 {
@@ -360,9 +375,12 @@ void LcdAutonomousSet( int value, bool select = false )
 		displayLCDString(0, 0, "MG 20 WallRight");
 		break;
 	case    3:
-		displayLCDString(0, 0, "Programming Skills");
+		displayLCDString(0, 0, "Blocked Auto");
 		break;
 	case    4:
+		displayLCDString(0, 0, "Programming Skills");
+		break;
+	case    5:
 		displayLCDString(0, 0, "No Auto Run");
 		break;
 	default:
@@ -525,19 +543,16 @@ void degmove(int degrees)
 }
 task setUpChainBar()
 {
-	if(chainBarSetupDone == false)
-	{
-		chainBarPIDActive = 0;
-		motor[chainbar] = -127;
-		wait1Msec(1000);
-		motor[chainbar] = 127;
-		wait1Msec(750);
-		motor[chainbar] = 0;
-		nMotorEncoder[chainbar] = 0;
-		wait1Msec(750);
-		chainBarPIDActive = 1;
-		chainBarSetupDone = true;
-	}
+	chainBarPIDActive = 0;
+	motor[chainbar] = -127;
+	wait1Msec(1000);
+	motor[chainbar] = 127;
+	wait1Msec(750);
+	motor[chainbar] = 0;
+	nMotorEncoder[chainbar] = 0;
+	wait1Msec(750);
+	chainBarPIDActive = 1;
+	chainBarSetupDone = true;
 }
 /*
 Effects of increasing a parameter independently[21][22]

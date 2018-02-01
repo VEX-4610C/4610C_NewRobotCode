@@ -12,13 +12,13 @@ void testDegmove()
 }
 void testSmallGyroturn()
 {
-	gyroturn(450, 0);
+	gyroturn(900, 0);
 	wait1Msec(250);
 	gyroturn(-900, 0);
 	wait1Msec(250);
 	gyroturn(900, 0);
 	wait1Msec(250);
-	gyroturn(-450, 0);
+	gyroturn(-900, 0);
 }
 void testLargeGyroturn()
 {
@@ -52,13 +52,14 @@ void testLargeGyroturn()
 void mobileGoalTenAuto()
 {
 	startTask(WATCHDOG);
-	startTask(setUpChainBar, 6);
+	chainBarSetpoint = 1500;
 	mobileDown();
 	degmove(55);
 	mobileUp();
+	chainBarSetpoint = chainBarStack;
 	outtake();
+	chainBarSetpoint = 1500;
 	degmove(-40);
-
 	gyroturn(1700,1);
 	degmove(20);
 	mobileDown();
@@ -68,14 +69,16 @@ void mobileGoalTenAuto()
 void mobileGoalTwenAuto(int wall)
 {
 	startTask(WATCHDOG);
-	startTask(setUpChainBar, 6);
+	chainBarSetpoint = 1500;
 	int turnMult = wall == LEFT ? 1 : -1;
 	mobileGoalSetpoint = mobileGoalDown;
 	wait1Msec(500);
 	degmove(55);
 	mobileUp();
-	degmove(-45);
+	chainBarSetpoint = chainBarStack;
 	outtake();
+	chainBarSetpoint = 1500;
+	degmove(-45);
 	gyroturn(-450 * turnMult, 1);
 	degmove(-20);
 	gyroturn(-750 * turnMult, 1);
@@ -111,4 +114,9 @@ void programmingSkills()
 	degmove(-30);
 	gyroturn(625, 0);
 	degmove(-60);
+}
+
+void disruptAuto()
+{
+	degmove(-200);
 }

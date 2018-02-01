@@ -37,7 +37,6 @@
 int RUNTEST = 1, TEST = 5; // Manual Autonomous Test Controls
 void pre_auton()
 {
-	startTask(batLevel, 0);
 	nMotorEncoder[frontLeft] = 0;
 	nMotorEncoder[frontRight] = 0;
 	nMotorEncoder[doubleLeft] = 0;
@@ -63,6 +62,8 @@ task autonomous()
 	if(MyAutonomous == 2 || (RUNTEST == 1 && TEST == 5))
 		mobileGoalTwenAuto(RIGHT);
 	if(MyAutonomous == 3 || (RUNTEST == 1 && TEST == 6))
+		disruptAuto();
+	if(MyAutonomous == 4 || (RUNTEST == 1 && TEST == 7))
 		programmingSkills();
 	if(RUNTEST == 1 && TEST == 7)
 		startTask(setUpChainBar, 6);
@@ -160,7 +161,7 @@ task usercontrol()
 		else if(doublePIDActive == 0 && lastManualLift == 1)
 		{
 			doublePIDActive = 1;
-			doubleSetpoint = nMotorEncoder[doubleLeft] + 50;
+			doubleSetpoint = nMotorEncoder[doubleLeft];
 		}
 		else
 		{
