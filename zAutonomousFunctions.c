@@ -1,6 +1,6 @@
 //CONFIG PARAMETERS
 #define doubleDown 0
-#define doublePreload 350
+#define doublePreload 425
 #define doublePreloadIntake -150
 #define doubleMobileGoal 250
 #define doubleFixedGoal 950
@@ -9,7 +9,7 @@
 #define doubleKD 0.01
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {700, 0, 150, 300, 350, 450, 525, 620, 730, 800,
+const int doubleStackUp[15] = {0, 0, 150, 300, 400, 475, 525, 620, 730, 800,
 	900, 1000, 1150, 1200, 1250};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
@@ -20,7 +20,7 @@ int finishStack = 0;
 
 #define mobileGoalDown 3400
 #define mobileGoalUp 1200
-#define mobileKP 0.35
+#define mobileKP 0.45
 #define mobileKI 0
 #define mobileKD 0
 int mobileGoalSetpoint = mobileGoalUp;
@@ -29,12 +29,11 @@ int mobilePIDActive = 1;
 
 #define chainBarUp 150
 #define chainBarDown 3000
-#define chainBarPreload 2300
-#define chainBarStack 850
-#define chainBarFirst 4300
+#define chainBarPreload 2500
+#define chainBarStack 1250
 #define chainBarPassPos 2500
-#define chainBarKP 0.08
-#define chainBarKI 0.001
+#define chainBarKP 0.09
+#define chainBarKI 0
 #define chainBarKD 0.02
 #define chainBarSensor chainBarPot
 int chainBarSetpoint = chainBarUp;
@@ -84,6 +83,14 @@ task WATCHDOG
 			pos_PID_SetTargetPosition(&mobilePID, mobileGoalSetpoint);
 			doubleError = pos_PID_GetError(&doublePID);
 			chainBarError = pos_PID_GetError(&chainbarPID);
+			if(chainBarSetpoint == chainBarStack)
+			{
+				chainbarPID.kP = 0.12;
+			}
+			else
+			{
+				chainbarPID.kP = 0.08;
+			}
 			if(abs(pos_PID_GetError(&mobilePID)) > 150)
 			{
 				pos_PID_SetTargetPosition(&doublePID, max(doubleSetpoint, doubleMobileGoal));
@@ -222,10 +229,7 @@ task autoStacker
 			{
 				if(abs(doubleError) < 300)
 				{
-					if(currentStacked == 0)
-						chainBarSetpoint = chainBarFirst;
-					else
-						chainBarSetpoint = chainBarStack;
+					chainBarSetpoint = chainBarStack;
 					innerState++;
 				}
 			}
@@ -242,7 +246,6 @@ task autoStacker
 						rollerSetpoint = rollerOut;
 						wait1Msec(550);
 						rollerSetpoint = rollerStop;
-
 						innerState++;
 					}
 				}
@@ -258,6 +261,7 @@ task autoStacker
 							doubleSetpoint = doublePreload;
 						}
 						chainBarSetpoint = chainBarPreload;
+						doubleSetpoint += 75;
 					}
 					else
 					{
@@ -268,12 +272,17 @@ task autoStacker
 			}
 			else if(innerState == 5)
 			{
-				if(SensorValue[chainBarPot] > 1700) // encoder > 350
+				if(SensorValue[chainBarPot] > 2000) // encoder > 350
 				{
 					if(doubleStackLoader)
+					{
 						doubleSetpoint = doublePreload;
+						rollerSetpoint = rollerIn;
+					}
 					else
+					{
 						doubleSetpoint = doubleDown;
+					}
 					innerState++;
 				}
 

@@ -34,7 +34,7 @@
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 1, TEST = 5; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST = 3; // Manual Autonomous Test Controls
 void pre_auton()
 {
 	nMotorEncoder[frontLeft] = 0;
@@ -82,6 +82,7 @@ task usercontrol()
 	int lastResetChainBar = 0;
 	int lastIntakeRoller = 0;
 	chainBarSetpoint = chainBarDown;
+	//doubleSetpoint = 300;
 	while (true)
 	{
 		writeDebugStreamLine("%d", motor[chainbar]);
@@ -129,9 +130,9 @@ task usercontrol()
 			while(vexRT[Btn5U]) { wait1Msec(20); }
 			currentStacked--;
 		}
-		if(vexRT[Btn8LXmtr2])
+		if(vexRT[Btn7LXmtr2])
 		{
-			while(vexRT[Btn8LXmtr2]) { wait1Msec(20); }
+			while(vexRT[Btn7LXmtr2]) { wait1Msec(20); }
 			currentStacked++;
 		}
 
@@ -240,19 +241,6 @@ task usercontrol()
 			{
 				finishStack = 1;
 			}
-		}
-		if(vexRT[Btn7LXmtr2])
-		{
-			lastResetChainBar = 1;
-			chainBarPIDActive = 1;
-			motor[chainbar] = -127;
-		}
-		else
-		{
-			if(lastResetChainBar)
-				chainBarAdjustment = (chainBarStack - SensorValue[chainBarPot]);
-			lastResetChainBar = 0;
-			chainBarPIDActive = 1;
 		}
 	}
 
