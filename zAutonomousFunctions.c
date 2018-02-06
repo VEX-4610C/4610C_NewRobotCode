@@ -1,6 +1,7 @@
 //CONFIG PARAMETERS
 #define doubleDown 0
-#define doublePreload 425
+#define doubleIntake 150
+#define doublePreload 450
 #define doublePreloadIntake -150
 #define doubleMobileGoal 250
 #define doubleFixedGoal 950
@@ -35,12 +36,13 @@ int mobilePIDActive = 1;
 #define chainBarKP 0.09
 #define chainBarKI 0
 #define chainBarKD 0.02
+#define chainBarB 0.9
+#define chainBarC 1
 #define chainBarSensor chainBarPot
 int chainBarSetpoint = chainBarUp;
 int chainBarError = 0;
 int chainBarDone = 0;
 int chainBarPIDActive = 1;
-int chainBarAdjustment = 0;
 bool chainBarSetupDone = false;
 
 #define rollerIn 127
@@ -68,6 +70,7 @@ task WATCHDOG
 	// Chain Bar PID Controller
 	pos_PID chainbarPID;
 	pos_PID_InitController(&chainbarPID, chainBarSensor, chainBarKP, chainBarKI, chainBarKD);
+	pos_PID_Activate2DOF(&chainbarPID, chainBarB, chainBarC);
 	// Mobile Goal PID Controller
 	pos_PID mobilePID;
 	pos_PID_InitController(&mobilePID, mobilePot, mobileKP, mobileKI, mobileKD);
@@ -243,6 +246,7 @@ task autoStacker
 					}
 					else
 					{
+
 						rollerSetpoint = rollerOut;
 						wait1Msec(550);
 						rollerSetpoint = rollerStop;
@@ -256,11 +260,14 @@ task autoStacker
 				{
 					if(doubleStackLoader)
 					{
-						if(currentStacked == 1)
+						if(currentStacked < 5)
 						{
 							doubleSetpoint = doublePreload;
 						}
-						chainBarSetpoint = chainBarPreload;
+						else
+						{
+							chainBarSetpoint = chainBarPreload;
+						}
 						doubleSetpoint += 75;
 					}
 					else
@@ -272,12 +279,12 @@ task autoStacker
 			}
 			else if(innerState == 5)
 			{
-				if(SensorValue[chainBarPot] > 2000) // encoder > 350
+				if(SensorValue[chainBarPot] > 2000 || (doubleStackLoader && currentStacked < 5 && doubleError < 150)) // encoder > 350
 				{
 					if(doubleStackLoader)
 					{
 						doubleSetpoint = doublePreload;
-						rollerSetpoint = rollerIn;
+						chainBarSetpoint = chainBarPreload;
 					}
 					else
 					{

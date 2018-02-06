@@ -37,6 +37,11 @@ typedef struct pos_PID_t
 	//Output
 	int outVal;
 
+	//2DOF
+	bool activateSetpointWeighting;
+	float b; // kP Setpoint Weighting
+	float c; // kD Setpoint Weighting
+
 
 } pos_PID;
 
@@ -159,6 +164,14 @@ int pos_PID_StepController(pos_PID *pid);
 
 int pos_PID_StepController(pos_PID *pid, const float val);
 
+/**
+ * Set Setpoint Weighting Parameters
+ * @param  b kP Setpoint Weighting
+ * @param  c kD Setpoint Weighting
+ */
+
+void pos_PID_Activate2DOF(pos_PID *pid, float bIn, float cIn);
+
 void pos_PID_InitController(pos_PID *pid, const tSensors sensor, const float kP, const float kI, const float kD, float kBias, int errorThreshold, int integralLimit)
 {
 	pid->kP = kP;
@@ -187,6 +200,8 @@ void pos_PID_InitController(pos_PID *pid, const tSensors sensor, const float kP,
 	pid->currentPos = 0;
 
 	pid->outVal = 0;
+	pid->b = 1;
+	pid->c = 1;
 }
 
 void pos_PID_InitController(pos_PID *pid, const tMotor imeMotor, const float kP, const float kI, const float kD, float kBias, int errorThreshold, int integralLimit)
@@ -215,6 +230,8 @@ void pos_PID_InitController(pos_PID *pid, const tMotor imeMotor, const float kP,
 	pid->targetPos = nMotorEncoder[imeMotor];
 
 	pid->outVal = 0;
+	pid->b = 1;
+	pid->c = 1;
 }
 
 void pos_PID_InitController(pos_PID *pid, const float *var, const float kP, const float kI, const float kD, float kBias, int errorThreshold, int integralLimit)
@@ -243,6 +260,8 @@ void pos_PID_InitController(pos_PID *pid, const float *var, const float kP, cons
 	pid->targetPos = *var;
 
 	pid->outVal = 0;
+	pid->b = 1;
+	pid->c = 1;
 }
 
 void pos_PID_ChangeBias(pos_PID *pid, const float kBias)
@@ -345,7 +364,7 @@ int pos_PID_StepController(pos_PID *pid)
 		pid->currentPos = SensorValue[pid->sensor];
 		pid->error = pid->targetPos - pid->currentPos;
 	}
-
+	pid->error = (pid->b*pid->targetPos) - pid->currentPos; // 2DOF
 	//If error is large enough, calculate integral and limit to avoid windup
 	if (abs(pid->error) > pid->errorThreshold && abs(pid->integral) < pid->integralLimit)
 	{
@@ -365,7 +384,7 @@ int pos_PID_StepController(pos_PID *pid)
 	}
 
 	//Calculate derivative
-	pid->derivative = (pid->error - pid->prevError) / pid->dt;
+	pid->derivative = (pid->c*(pid->error - pid->prevError)) / pid->dt; // 2DOF
 	pid->prevError = pid->error;
 
 	//Calculate output
@@ -436,6 +455,12 @@ int pos_PID_StepController(pos_PID *pid, const float val)
 
 	return pid->outVal;
 }
+
+void pos_PID_Activate2DOF(pos_PID *pid, float bIn, float cIn)
+{
+	pid->b = bIn;
+	pid->c = cIn;
+}
 void SUPPRESS()
 {
 	SUPPRESS();
@@ -448,4 +473,5 @@ void SUPPRESS()
 	pos_PID_GetError(&x);
 	pos_PID_GetPosition(&x);
 	pos_PID_GetOutput(&x);
+	pos_PID_Activate2DOF(&x, 1,1);
 }

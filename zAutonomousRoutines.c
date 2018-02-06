@@ -115,7 +115,7 @@ void programmingSkills()
 	outtake();
 	mobileUp();
 	chainBarSetpoint = 1200;
-	while(!chainbarDone) { wait1Msec(20); }
+	while(!chainBarDone) { wait1Msec(20); }
 	degmove(-22);
 	gyroturn(-900, 1);
 	degmove(15);

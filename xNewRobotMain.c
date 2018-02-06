@@ -79,7 +79,6 @@ task usercontrol()
 	int left = 0, right = 0;
 	int lastManualLift = 0;
 	int lastManualChainBar = 0;
-	int lastResetChainBar = 0;
 	int lastIntakeRoller = 0;
 	chainBarSetpoint = chainBarDown;
 	//doubleSetpoint = 300;
@@ -225,22 +224,6 @@ task usercontrol()
 		{
 			doubleSetpoint = doubleFixedGoal;
 			chainBarSetpoint = chainBarPassPos;
-		}
-		if(0) // FINISH STACK BUTTON
-		{
-			finishStack = 1;
-		}
-		if(finishStack)
-		{
-			doubleSetpoint = doubleStackUp[currentStacked];
-			if(doubleError < 300)
-			{
-				chainBarSetpoint = chainBarStack;
-			}
-			if(chainBarSetpoint == chainBarStack && chainBarDone && doubleDone)
-			{
-				finishStack = 1;
-			}
 		}
 	}
 
