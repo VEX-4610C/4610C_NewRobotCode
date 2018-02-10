@@ -1,8 +1,8 @@
 //CONFIG PARAMETERS
 #define doubleDown 0
 #define doubleIntake 150
-#define doublePreload 450
-#define doublePreloadIntake -150
+#define doublePreload 400
+#define doublePreloadIntake 400
 #define doubleMobileGoal 250
 #define doubleFixedGoal 950
 #define doubleKP 1.15
@@ -10,8 +10,8 @@
 #define doubleKD 0.01
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {0, 0, 150, 300, 400, 475, 525, 620, 730, 800,
-	900, 1000, 1150, 1200, 1250};
+const int doubleStackUp[15] = {0, 0, 150, 300, 450, 500, 550, 650, 750, 850,
+	950, 1150, 1200, 1250, 1300};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -33,9 +33,9 @@ int mobilePIDActive = 1;
 #define chainBarPreload 2500
 #define chainBarStack 1250
 #define chainBarPassPos 2500
-#define chainBarKP 0.09
+#define chainBarKP 0.11
 #define chainBarKI 0
-#define chainBarKD 0.02
+#define chainBarKD 0.015
 #define chainBarB 0.9
 #define chainBarC 1
 #define chainBarSensor chainBarPot
@@ -208,7 +208,8 @@ task autoStacker
 				if(doubleStackLoader)
 				{
 					doubleSetpoint = doublePreloadIntake;
-					wait1Msec(200);
+					chainBarSetpoint += 800;
+					wait1Msec(500);
 					rollerSetpoint = rollerIn;
 					wait1Msec(500);
 				}
@@ -238,7 +239,7 @@ task autoStacker
 			}
 			else if(innerState == 3)
 			{
-				if(chainBarDone)
+				if((SensorValue[chainBarPot] < 1475 || chainBarDone) && abs(doubleError) < 50)
 				{
 					if(currentStacked == 11)
 					{
@@ -246,7 +247,8 @@ task autoStacker
 					}
 					else
 					{
-
+						wait1Msec(250);
+						doubleSetpoint -= 150;
 						rollerSetpoint = rollerOut;
 						wait1Msec(550);
 						rollerSetpoint = rollerStop;
@@ -280,7 +282,7 @@ task autoStacker
 			}
 			else if(innerState == 5)
 			{
-				if(SensorValue[chainBarPot] > 2000 || (doubleStackLoader && currentStacked < 5 && doubleError < 150)) // encoder > 350
+				if(SensorValue[chainBarPot] > 2000 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
 				{
 					if(doubleStackLoader)
 					{
