@@ -250,6 +250,7 @@ task autoStacker
 						rollerSetpoint = rollerOut;
 						wait1Msec(550);
 						rollerSetpoint = rollerStop;
+						doubleSetpoint += 150;
 						innerState++;
 					}
 				}
