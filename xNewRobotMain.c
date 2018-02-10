@@ -219,6 +219,9 @@ task usercontrol()
 			chainBarSetpoint = chainBarDown;
 			activateAutoStacker = 0;
 			currentStacked = 0;
+			doubleStackLoader = 0;
+			doubleSetpoint = doubleDown;
+			chainBarSetpoint = chainBarDown;
 		}
 		if(vexRT[Btn8L])
 		{

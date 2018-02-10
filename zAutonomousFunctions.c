@@ -290,17 +290,11 @@ task autoStacker
 					{
 						doubleSetpoint = doubleDown;
 					}
-					innerState++;
+					activateAutoStacker = 0;
+					currentStacked++;
+					innerState = 0;
 				}
-
 			}
-			else if(innerState == 6)
-			{
-				activateAutoStacker = 0;
-				currentStacked++;
-				innerState = 0;
-			}
-
 			lastAutostacker = 1;
 		}
 		wait1Msec(100);
@@ -513,7 +507,7 @@ void degmove(int degrees)
 	float kP = 0.28;
 	float kI = 0;
 	float kD = 0;
-	float gyroKP = 0.05;
+	float gyroKP = 0;
 	int moveDone = 0;
 	int moveStartTimer, moveEndTime;
 	int error, power;
