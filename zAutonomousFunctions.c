@@ -2,7 +2,7 @@
 #define doubleDown 0
 #define doubleIntake 150
 #define doublePreload 400
-#define doublePreloadIntake 300
+#define doublePreloadIntake 400
 #define doubleMobileGoal 250
 #define doubleFixedGoal 950
 #define doubleKP 1.15
@@ -208,7 +208,7 @@ task autoStacker
 				if(doubleStackLoader)
 				{
 					doubleSetpoint = doublePreloadIntake;
-					chainBarSetpoint += 300;
+					chainBarSetpoint += 800;
 					wait1Msec(500);
 					rollerSetpoint = rollerIn;
 					wait1Msec(500);
