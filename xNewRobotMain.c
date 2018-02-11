@@ -142,6 +142,7 @@ task usercontrol()
 			SetMotor(doubleRight, -127);
 			lastManualLift = 1;
 			activateAutoStacker = 0;
+			activateStationaryMobile = 0;
 			finishStack = 0;
 		}
 		else if(vexRT[Btn8R])
@@ -151,12 +152,20 @@ task usercontrol()
 			SetMotor(doubleRight, 127);
 			lastManualLift = 1;
 			activateAutoStacker = 0;
+			activateStationaryMobile = 0;
 			finishStack = 0;
 		}
 		else if(vexRT[Btn6U])
 		{
 			doublePIDActive = 1;
 			activateAutoStacker = 1;
+			activateStationaryMobile = 0;
+		}
+		else if(vexRT[Btn6UXmtr2])
+		{
+			doublePIDActive = 1;
+			activateAutoStacker = 0;
+			activateStationaryMobile = 1;
 		}
 		else if(doublePIDActive == 0 && lastManualLift == 1)
 		{

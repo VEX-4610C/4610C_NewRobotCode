@@ -4,14 +4,15 @@
 #define doublePreload 400
 #define doublePreloadIntake 400
 #define doubleMobileGoal 250
-#define doubleFixedGoal 950
-#define doubleKP 1.15
+#define doubleFixedGoal 650
+#define doubleKP 1.1
 #define doubleKI 0
-#define doubleKD 0.01
+#define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {0, 0, 150, 300, 450, 500, 550, 650, 750, 850,
-	950, 1150, 1200, 1250, 1300};
+const int doubleStackUp[15] = {150, 150, 150, 300, 450, 550, 600, 650, 830, 900,
+	1000, 1150, 1200, 1250, 1275};
+const int doubleStationary[8] = {0, 80, 160, 300, 400, 500, 600, 700};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -21,7 +22,7 @@ int finishStack = 0;
 
 #define mobileGoalDown 3400
 #define mobileGoalUp 1200
-#define mobileKP 0.45
+#define mobileKP 0.3
 #define mobileKI 0
 #define mobileKD 0
 int mobileGoalSetpoint = mobileGoalUp;
@@ -53,7 +54,9 @@ bool chainBarSetupDone = false;
 int rollerSetpoint = 0;
 
 int activateAutoStacker = 0;
+int activateStationaryMobile = 0;
 int currentStacked = 0;
+int currentStationary = 0;
 int pidActive = 1;
 
 #define HOLDOUT 400
@@ -193,11 +196,11 @@ task autoStacker
 	int limitNum = sizeof(doubleStackUp) / sizeof(int);
 	while(1)
 	{
-		if(activateAutoStacker && !lastAutostacker)
+		if((activateAutoStacker || activateStationaryMobile) && !lastAutostacker)
 		{
 			innerState = 0;
 		}
-		if(!activateAutoStacker)
+		if(!activateAutoStacker && !activateStationaryMobile)
 		{
 			lastAutostacker = 0;
 		}
@@ -207,11 +210,11 @@ task autoStacker
 			{
 				if(doubleStackLoader)
 				{
-					doubleSetpoint = doublePreloadIntake;
-					chainBarSetpoint += 800;
-					wait1Msec(500);
+					chainBarSetpoint += 850;
 					rollerSetpoint = rollerIn;
-					wait1Msec(500);
+					while(SensorValue[chainBarPot] < 2000 && nMotorEncoder[doubleLeft] < 450) { wait1Msec(20); }
+					doubleSetpoint -= 150;
+					wait1Msec(650);
 				}
 				rollerSetpoint = rollerHold;
 				if(!doubleStackLoader)
@@ -225,13 +228,13 @@ task autoStacker
 				if(1)
 				{
 					doubleDone = 0;
-					doubleSetpoint = doubleStackUp[currentStacked];
+					doubleSetpoint = doubleStackUp[currentStacked] + 50;
 					innerState++;
 				}
 			}
 			else if(innerState == 2)
 			{
-				if(abs(doubleError) < 300)
+				if(abs(doubleError) < 350)
 				{
 					chainBarSetpoint = chainBarStack;
 					innerState++;
@@ -247,12 +250,12 @@ task autoStacker
 					}
 					else
 					{
-						wait1Msec(250);
-						doubleSetpoint -= 150;
+						wait1Msec(175);
+						doubleSetpoint -= 235;
 						rollerSetpoint = rollerOut;
-						wait1Msec(550);
+						wait1Msec(300);
 						rollerSetpoint = rollerStop;
-						doubleSetpoint += 150;
+						doubleSetpoint += 225;
 						innerState++;
 					}
 				}
@@ -282,25 +285,81 @@ task autoStacker
 			}
 			else if(innerState == 5)
 			{
-				if(SensorValue[chainBarPot] > 2000 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
+				if(SensorValue[chainBarPot] > 1900 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
 				{
 					if(doubleStackLoader)
 					{
 						doubleSetpoint = doublePreload;
 						chainBarSetpoint = chainBarPreload;
+						if(vexRT[Btn6U])
+						{
+							rollerSetpoint = rollerIn;
+							wait1Msec(450);
+						}
 					}
 					else
 					{
 						doubleSetpoint = doubleDown;
 					}
 					activateAutoStacker = 0;
+					activateStationaryMobile = 0;
 					currentStacked++;
 					innerState = 0;
 				}
 			}
 			lastAutostacker = 1;
 		}
-		wait1Msec(100);
+		else if(activateStationaryMobile && currentStacked > 3 && currentStationary < 7)
+		{
+			if(innerState == 0)
+			{
+				doubleSetpoint = doubleStackUp[currentStacked] - 75;
+				innerState++;
+			}
+			else if(innerState == 1)
+			{
+				if(abs(doubleError) < 175)
+				{
+					chainBarSetpoint = chainBarStack;
+					innerState++;
+				}
+			}
+			else if(innerState == 2)
+			{
+				if((SensorValue[chainBarPot] < 1475 || chainBarDone))
+				{
+					doubleSetpoint -= 300;
+					wait1Msec(350);
+					rollerSetpoint = rollerIn;
+					wait1Msec(250);
+					rollerSetpoint = rollerHold;
+					innerState ++;
+				}
+			}
+			else if(innerState == 3)
+			{
+				doubleSetpoint += 500;
+				wait1Msec(500);
+
+				doubleSetpoint = doubleFixedGoal + doubleStationary[currentStationary];
+				innerState++;
+			}
+			else if(innerState == 4)
+			{
+				if(abs(doubleError) < 150)
+				{
+					wait1Msec(150);
+					chainBarSetpoint = chainBarPreload;
+					activateAutoStacker = 0;
+					activateStationaryMobile = 0;
+					currentStacked--;
+					currentStationary++;
+					innerState = 0;
+				}
+			}
+			lastAutostacker = 1;
+		}
+		wait1Msec(50);
 	}
 }
 
