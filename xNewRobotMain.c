@@ -34,7 +34,7 @@
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 1, TEST = 3; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST = 5; // Manual Autonomous Test Controls
 void pre_auton()
 {
 	nMotorEncoder[frontLeft] = 0;
@@ -128,11 +128,23 @@ task usercontrol()
 		{
 			while(vexRT[Btn5U]) { wait1Msec(20); }
 			currentStacked--;
+			minusOnes++;
 		}
 		if(vexRT[Btn7LXmtr2])
 		{
 			while(vexRT[Btn7LXmtr2]) { wait1Msec(20); }
 			currentStacked++;
+		}
+
+		if(vexRT[Btn7UXmtr2] && currentStationary > 0)
+		{
+			while(vexRT[Btn5U]) { wait1Msec(20); }
+			currentStationary++;
+		}
+		if(vexRT[Btn7DXmtr2])
+		{
+			while(vexRT[Btn7DXmtr2]) { wait1Msec(20); }
+			currentStationary--;
 		}
 
 		if(vexRT[Btn7L])
@@ -203,6 +215,8 @@ task usercontrol()
 		if(vexRT[Btn5D])
 		{
 			rollerSetpoint = rollerIn;
+			if(nMotorEncoder[doubleLeft] < 50)
+				chainBarSetpoint = chainBarIntake;
 			lastIntakeRoller = 1;
 		}
 		else if(vexRT[Btn6D])
@@ -213,9 +227,14 @@ task usercontrol()
 		else
 		{
 			if(lastIntakeRoller == 1)
+			{
 				rollerSetpoint = rollerHold;
+				}
 			else if(lastIntakeRoller == -1)
+			{
 				rollerSetpoint = rollerStop;
+
+			}
 			lastIntakeRoller = 0;
 		}
 		// RESET
@@ -231,6 +250,7 @@ task usercontrol()
 			doubleStackLoader = 0;
 			doubleSetpoint = doubleDown;
 			chainBarSetpoint = chainBarDown;
+			minusOnes = 0;
 		}
 		if(vexRT[Btn8L])
 		{

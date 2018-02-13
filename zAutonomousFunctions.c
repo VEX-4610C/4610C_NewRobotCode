@@ -10,7 +10,7 @@
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {150, 150, 150, 300, 450, 550, 600, 650, 830, 900,
+const int doubleStackUp[15] = {50, 50, 150, 300, 450, 550, 600, 650, 830, 900,
 	1000, 1150, 1200, 1250, 1275};
 const int doubleStationary[8] = {0, 80, 160, 300, 400, 500, 600, 700};
 int doubleSetpoint = doubleDown;
@@ -31,14 +31,15 @@ int mobilePIDActive = 1;
 
 #define chainBarUp 150
 #define chainBarDown 3000
+#define chainBarIntake 3600
 #define chainBarPreload 2500
-#define chainBarStack 1250
+#define chainBarStack 950
 #define chainBarPassPos 2500
-#define chainBarKP 0.11
+#define chainBarKP 0.09
 #define chainBarKI 0
-#define chainBarKD 0.015
-#define chainBarB 0.9
-#define chainBarC 1
+#define chainBarKD 0.023
+#define chainBarB 0.875
+#define chainBarC 1.075
 #define chainBarSensor chainBarPot
 int chainBarSetpoint = chainBarUp;
 int chainBarError = 0;
@@ -57,6 +58,7 @@ int activateAutoStacker = 0;
 int activateStationaryMobile = 0;
 int currentStacked = 0;
 int currentStationary = 0;
+int minusOnes = 0;
 int pidActive = 1;
 
 #define HOLDOUT 400
@@ -234,7 +236,7 @@ task autoStacker
 			}
 			else if(innerState == 2)
 			{
-				if(abs(doubleError) < 350)
+				if(abs(doubleError) < 400)
 				{
 					chainBarSetpoint = chainBarStack;
 					innerState++;
@@ -244,7 +246,7 @@ task autoStacker
 			{
 				if((SensorValue[chainBarPot] < 1475 || chainBarDone) && abs(doubleError) < 50)
 				{
-					if(currentStacked == 11)
+					if(currentStacked == (11-minusOnes) && doubleStackLoader)
 					{
 						activateAutoStacker = 0;
 					}
@@ -326,7 +328,7 @@ task autoStacker
 			}
 			else if(innerState == 2)
 			{
-				if((SensorValue[chainBarPot] < 1475 || chainBarDone))
+				if(SensorValue[chainBarPot] < 1475 || chainBarDone)
 				{
 					doubleSetpoint -= 300;
 					wait1Msec(350);
@@ -340,7 +342,6 @@ task autoStacker
 			{
 				doubleSetpoint += 500;
 				wait1Msec(500);
-
 				doubleSetpoint = doubleFixedGoal + doubleStationary[currentStationary];
 				innerState++;
 			}
