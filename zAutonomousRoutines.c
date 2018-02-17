@@ -31,53 +31,34 @@ void testLargeGyroturn()
 -	7 Point Match Auto
 */
 #define mobileUp() mobileDone = 0; \
-								 mobileGoalSetpoint = mobileGoalUp; \
-								 wait1Msec(500); \
-								 while(!mobileDone) { wait1Msec(20); }
+mobileGoalSetpoint = mobileGoalUp; \
+wait1Msec(500); \
+while(!mobileDone) { wait1Msec(20); }
 
 #define mobileDown() mobileDone = 0; \
-								 mobileGoalSetpoint = mobileGoalDown; \
-								 wait1Msec(500); \
-								 while(!mobileDone) { wait1Msec(20); }
-#define intake() 	chainBarSetpoint = chainBarDown;    \
-									rollerSetpoint = rollerIn;         \
-									wait1Msec(500);									    \
-									rollerSetpoint = rollerStop;        \
-									chainBarSetpoint = chainBarPassPos \
+mobileGoalSetpoint = mobileGoalDown; \
+wait1Msec(500); \
+while(!mobileDone) { wait1Msec(20); }
+#define intake() 	chainBarSetpoint = chainBarIntake;    \
+rollerSetpoint = rollerIn;         \
+wait1Msec(250);									    \
+rollerSetpoint = rollerHold;        \
+chainBarSetpoint = chainBarDown \
 
 #define outtake() rollerSetpoint = rollerOut;         \
-									wait1Msec(500);									    \
-									rollerSetpoint = rollerStop         \
+wait1Msec(200);									    \
+rollerSetpoint = rollerStop
+
+#define setAllMotors(x) motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = (x)									\
 
 void mobileGoalTenAuto()
 {
-	motor[rollerMotor] = 127;
-	rollerSetpoint = rollerIn;
-	startTask(WATCHDOG);
-	chainBarSetpoint = 2000;
-	mobileGoalSetpoint = mobileGoalDown;
-	wait1Msec(500);
-	rollerSetpoint = 25;
-	degmove(48);
-	rollerSetpoint = rollerOut;
-	gyroturn(SensorValue[gyro], 1);
-	mobileUp();
-	chainBarSetpoint = 1350;
-	degmove(-40);
-	gyroturn(1700, 1);
-	degmove(10);
-	mobileDown();
-	degmove(-30);
-}
-
-void mobileGoalTwenAuto(int wall)
-{
+	SensorValue[gyro] = 0;
 	motor[rollerMotor] = 127;
 	rollerSetpoint = rollerIn;
 	startTask(WATCHDOG);
 	startTask(autoStacker);
 	chainBarSetpoint = 2000;
-	int turnMult = wall == LEFT ? 1 : -1;
 	mobileGoalSetpoint = mobileGoalDown;
 	wait1Msec(500);
 	rollerSetpoint = 25;
@@ -85,19 +66,54 @@ void mobileGoalTwenAuto(int wall)
 	gyroturn(SensorValue[gyro], 1);
 	mobileUp();
 	activateAutoStacker = 1;
+	while(activateAutoStacker) { wait1Msec(20); }
+	for(int i =0; i<3; i++)
+	{
+		rollerSetpoint = rollerIn;
+		chainBarSetpoint = chainBarIntake;
+		wait1Msec(250);
+		activateAutoStacker = 1;
+		degmove(3);
+		while(activateAutoStacker) { wait1Msec(20); }
+	}
+	degmove(-40);
+	gyroturn(1800, 1);
+	mobileDown();
+	degmove(-30);
+}
+
+void mobileGoalTwenAuto(int wall)
+{
+	doubleSetpoint = 150;
+	SensorValue[gyro] = 0;
+	motor[rollerMotor] = 127;
+	rollerSetpoint = rollerIn;
+	startTask(WATCHDOG);
+	startTask(autoStacker);
+	chainBarSetpoint = 2200;
+	int turnMult = wall == LEFT ? 1 : -1;
+	mobileDown();
+	doubleSetpoint = 0;
+	rollerSetpoint = 25;
+	SensorValue[gyro] = 0;
+	degmove(47);
+	rollerSetpoint = rollerOut;
+	mobileUp();
+	rollerSetpoint = rollerHold;
 	degmove(-40);
 	chainBarSetpoint = chainBarStack;
-	gyroturn(-450 * turnMult, 1);
-	degmove(-20);
+	gyroturn(-450 * turnMult + SensorValue[gyro], 1);
+	degmove(-24);
 	rollerSetpoint = rollerStop;
-	gyroturn(-780 * turnMult, 1);
-	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 127;
-	wait1Msec(1000);
-	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 0;
-	mobileDown();
-	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 127;
-	wait1Msec(200);
-	motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = 0;
+	gyroturn(-1000 * turnMult, 1);
+	setAllMotors(127);
+	wait1Msec(600);
+	setAllMotors(0);
+	mobileGoalSetpoint = mobileGoalDown;
+	wait1Msec(300);
+	setAllMotors(127);
+	wait1Msec(300);
+	setAllMotors(0);
 	mobileGoalSetpoint = mobileGoalUp;
 	degmove(-30);
 }
@@ -105,6 +121,7 @@ void mobileGoalTwenAuto(int wall)
 
 void programmingSkills()
 {
+	SensorValue[gyro] = 0;
 	motor[rollerMotor] = 127;
 	rollerSetpoint = rollerIn;
 	doubleSetpoint = 250;

@@ -37,6 +37,7 @@
 int RUNTEST = 1, TEST = 5; // Manual Autonomous Test Controls
 void pre_auton()
 {
+
 	nMotorEncoder[frontLeft] = 0;
 	nMotorEncoder[frontRight] = 0;
 	nMotorEncoder[doubleLeft] = 0;
@@ -84,7 +85,6 @@ task usercontrol()
 	//doubleSetpoint = 300;
 	while (true)
 	{
-		writeDebugStreamLine("%d", motor[chainbar]);
 		// Drive Code
 		left   = abs(vexRT[Ch3]);
 		right  = abs(vexRT[Ch2]);
@@ -228,8 +228,10 @@ task usercontrol()
 		{
 			if(lastIntakeRoller == 1)
 			{
+				if(nMotorEncoder[doubleLeft] < 50)
+					chainBarSetpoint = chainBarDown;
 				rollerSetpoint = rollerHold;
-				}
+			}
 			else if(lastIntakeRoller == -1)
 			{
 				rollerSetpoint = rollerStop;
