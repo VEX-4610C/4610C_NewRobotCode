@@ -10,7 +10,7 @@
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {50, 50, 150, 300, 450, 550, 600, 650, 830, 900,
+const int doubleStackUp[15] = {0, 50, 150, 300, 450, 550, 600, 650, 830, 900,
 	1000, 1150, 1200, 1250, 1275};
 const int doubleStationary[8] = {0, 80, 160, 300, 400, 500, 600, 700};
 int doubleSetpoint = doubleDown;
@@ -21,7 +21,7 @@ int doublePIDActive = 1;
 int finishStack = 0;
 
 #define mobileGoalDown 3400
-#define mobileGoalUp 1280
+#define mobileGoalUp 1200
 #define mobileKP 0.3
 #define mobileKI 0
 #define mobileKD 0
@@ -30,15 +30,15 @@ int mobileDone = 0;
 int mobilePIDActive = 1;
 
 #define chainBarUp 150
-#define chainBarDown 3000
-#define chainBarIntake 4000
-#define chainBarPreload 2500
-#define chainBarStack 950
+#define chainBarDown 2500
+#define chainBarIntake 3500
+#define chainBarPreload 2350
+#define chainBarStack 600
 #define chainBarPassPos 2500
-#define chainBarKP 0.09
+#define chainBarKP 0.085
 #define chainBarKI 0
 #define chainBarKD 0.023
-#define chainBarB 0.875
+#define chainBarB 0.85
 #define chainBarC 1.075
 #define chainBarSensor chainBarPot
 int chainBarSetpoint = chainBarUp;
@@ -230,7 +230,7 @@ task autoStacker
 				if(1)
 				{
 					doubleDone = 0;
-					doubleSetpoint = doubleStackUp[currentStacked];
+					doubleSetpoint = doubleStackUp[currentStacked] + 50;
 					innerState++;
 				}
 			}
@@ -313,6 +313,8 @@ task autoStacker
 		{
 			if(innerState == 0)
 			{
+				if(currentStationary != 0)
+					chainBarSetpoint = 2200;
 				doubleSetpoint = doubleStackUp[currentStacked];
 				innerState++;
 			}
@@ -565,7 +567,7 @@ void degmove(int degrees)
 	SensorValue[gyro] = 0;
 	nMotorEncoder[frontLeft] = 0;
 	degrees *= 25;
-	float kP = 0.265;
+	float kP = 0.27;
 	float kI = 0;
 	float kD = 0;
 	float gyroKP = 0;

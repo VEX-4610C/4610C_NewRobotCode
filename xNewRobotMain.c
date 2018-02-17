@@ -34,7 +34,7 @@
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 1, TEST = 5; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST = 3; // Manual Autonomous Test Controls
 void pre_auton()
 {
 
