@@ -34,7 +34,7 @@
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 1, TEST = 3; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST = 8; // Manual Autonomous Test Controls
 void pre_auton()
 {
 
@@ -57,15 +57,23 @@ task autonomous()
 	if(RUNTEST == 1 && TEST == 2)
 		testLargeGyroturn();
 	if(MyAutonomous == 0 || (RUNTEST == 1 && TEST == 3))
-		mobileGoalTenAuto();
-	if(MyAutonomous == 1 || (RUNTEST == 1 && TEST == 4))
+		mobileGoalTenAuto(LEFT, 1);
+	if(MyAutonomous == 0 || (RUNTEST == 1 && TEST == 4))
+		mobileGoalTenAuto(RIGHT, 1);
+	if(MyAutonomous == 0 || (RUNTEST == 1 && TEST == 5))
+		mobileGoalTenAuto(LEFT, 0);
+	if(MyAutonomous == 0 || (RUNTEST == 1 && TEST == 6))
+		mobileGoalTenAuto(RIGHT, 0);
+	if(MyAutonomous == 1 || (RUNTEST == 1 && TEST == 7))
 		mobileGoalTwenAuto(LEFT);
-	if(MyAutonomous == 2 || (RUNTEST == 1 && TEST == 5))
+	if(MyAutonomous == 2 || (RUNTEST == 1 && TEST == 8))
 		mobileGoalTwenAuto(RIGHT);
-	if(MyAutonomous == 3 || (RUNTEST == 1 && TEST == 6))
+	if(MyAutonomous == 3 || (RUNTEST == 1 && TEST == 9))
 		disruptAuto();
-	if(MyAutonomous == 4 || (RUNTEST == 1 && TEST == 7))
+	if(MyAutonomous == 4 || (RUNTEST == 1 && TEST == 10))
 		programmingSkills();
+	if(MyAutonomous == 5 || (RUNTEST == 1 && TEST == 11))
+		stationaryAuto();
 	if(RUNTEST == 1 && TEST == 7)
 		startTask(setUpChainBar, 6);
 }
@@ -75,7 +83,6 @@ task usercontrol()
 	//SmartMotorRun();
 	chainBarPIDActive = 1;
 	startTask(WATCHDOG);
-	startTask(batLevel, 0);
 	startTask(autoStacker);
 	int left = 0, right = 0;
 	int lastManualLift = 0;
@@ -138,7 +145,7 @@ task usercontrol()
 
 		if(vexRT[Btn7UXmtr2] && currentStationary > 0)
 		{
-			while(vexRT[Btn5U]) { wait1Msec(20); }
+			while(vexRT[Btn7UXmtr2]) { wait1Msec(20); }
 			currentStationary++;
 		}
 		if(vexRT[Btn7DXmtr2])
@@ -146,7 +153,12 @@ task usercontrol()
 			while(vexRT[Btn7DXmtr2]) { wait1Msec(20); }
 			currentStationary--;
 		}
-
+		if(vexRT[Btn8LXmtr2])
+		{
+			while(vexRT[Btn8LXmtr2]) { wait1Msec(20); }
+			nMotorEncoder[doubleLeft] = 0;
+			doubleSetpoint = 0;
+		}
 		if(vexRT[Btn7L])
 		{
 			doublePIDActive = 0;

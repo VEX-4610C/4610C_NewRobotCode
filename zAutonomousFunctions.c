@@ -1,7 +1,7 @@
 //CONFIG PARAMETERS
 #define doubleDown 0
 #define doubleIntake 150
-#define doublePreload 400
+#define doublePreload 425
 #define doublePreloadIntake 400
 #define doubleMobileGoal 250
 #define doubleFixedGoal 650
@@ -10,9 +10,9 @@
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {0, 50, 150, 300, 450, 550, 600, 650, 830, 900,
+const int doubleStackUp[15] = {150, 150, 150, 300, 450, 550, 600, 700, 830, 900,
 	1000, 1150, 1200, 1250, 1275};
-const int doubleStationary[8] = {0, 80, 160, 300, 400, 500, 600, 700};
+const int doubleStationary[8] = {80, 80, 160, 300, 400, 500, 600, 700};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -230,13 +230,13 @@ task autoStacker
 				if(1)
 				{
 					doubleDone = 0;
-					doubleSetpoint = doubleStackUp[currentStacked] + 50;
+					doubleSetpoint = doubleStackUp[currentStacked] + 25;
 					innerState++;
 				}
 			}
 			else if(innerState == 2)
 			{
-				if(abs(doubleError) < 500)
+				if(nMotorEncoder[doubleLeft] > (doubleStackUp[currentStacked] - 125))
 				{
 					chainBarSetpoint = chainBarStack;
 					innerState++;
@@ -246,9 +246,10 @@ task autoStacker
 			{
 				if((SensorValue[chainBarPot] < 1550 || chainBarDone) && abs(doubleError) < 150)
 				{
-					if(currentStacked == 11 && doubleStackLoader)
+					if((currentStacked == (11-minusOnes) && doubleStackLoader) || finishStack)
 					{
 						activateAutoStacker = 0;
+						finishStack = 0;
 					}
 					else
 					{
@@ -257,7 +258,8 @@ task autoStacker
 						rollerSetpoint = rollerOut;
 						wait1Msec(300);
 						rollerSetpoint = rollerStop;
-						doubleSetpoint += 225;
+						doubleSetpoint += 350;
+						wait1Msec(200);
 						innerState++;
 					}
 				}
@@ -286,7 +288,7 @@ task autoStacker
 			}
 			else if(innerState == 5)
 			{
-				if(SensorValue[chainBarPot] > 1800 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
+				if(SensorValue[chainBarPot] > 1600 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
 				{
 					if(doubleStackLoader)
 					{
@@ -314,7 +316,11 @@ task autoStacker
 			if(innerState == 0)
 			{
 				if(currentStationary != 0)
+				{
 					chainBarSetpoint = 2200;
+					doubleSetpoint += 200;
+					wait1Msec(200);
+				}
 				doubleSetpoint = doubleStackUp[currentStacked];
 				innerState++;
 			}
@@ -333,7 +339,7 @@ task autoStacker
 					doubleSetpoint -= 300;
 					wait1Msec(350);
 					rollerSetpoint = rollerIn;
-					wait1Msec(250);
+					wait1Msec(400);
 					rollerSetpoint = rollerHold;
 					innerState ++;
 				}
@@ -345,7 +351,7 @@ task autoStacker
 			}
 			else if(innerState == 4)
 			{
-				if(abs(doubleError) < 150)
+				if(doubleDone)
 				{
 					wait1Msec(150);
 					chainBarSetpoint = chainBarPreload;
@@ -550,10 +556,6 @@ void gyroturn(float degrees, int mG)
 			turnStartTimer = 0;
 		}
 		if(turnStartTimer && turnEndTime < time1[T3])
-		{
-			turnDone = 1;
-		}
-		if((time1[T3] - startTime) > 5000)
 		{
 			turnDone = 1;
 		}
