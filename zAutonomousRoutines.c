@@ -57,7 +57,6 @@ void mobileandcone(int wall, int sh)
 	SensorValue[gyro] = 0;
 	motor[rollerMotor] = 127;
 	rollerSetpoint = rollerIn;
-	int turnMult = (wall == LEFT ? 1 : -1);
 	startTask(WATCHDOG);
 	startTask(autoStacker);
 
@@ -259,5 +258,3 @@ degmove(-10);
 doubleSetpoint = 0;
 rollerSetpoint = rollerStop;
 }
-
-

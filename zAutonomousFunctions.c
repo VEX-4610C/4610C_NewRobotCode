@@ -568,11 +568,13 @@ void degmove(int degrees)
 {
 	SensorValue[gyro] = 0;
 	nMotorEncoder[frontLeft] = 0;
+	nMotorEncoder[frontRight] = 0;
 	degrees *= 25;
 	float kP = 0.27;
 	float kI = 0;
 	float kD = 0;
 	float gyroKP = 0;
+	float encoderkP = 0.5;
 	int moveDone = 0;
 	int moveStartTimer, moveEndTime;
 	int error, power;
@@ -580,6 +582,7 @@ void degmove(int degrees)
 	int startTime = time1[T3]-1;
 	float dedt;
 	int gyroAdj;
+	int encoderAdj;
 	while(!moveDone)
 	{
 		error = degrees - nMotorEncoder[frontLeft];
@@ -587,8 +590,9 @@ void degmove(int degrees)
 		totalError += dedt;
 		power = (error * kP) + (totalError * kI) + (dedt * kD);
 		gyroAdj = SensorValue[gyro] * gyroKP;
-		motor[frontLeft] = motor[backLeft] = (power + gyroAdj);
-		motor[frontRight] = motor[backRight] = (power - gyroAdj);
+		encoderAdj = (nMotorEncoder[frontLeft] - nMotorEncoder[frontRight]) * encoderkP;
+		motor[frontLeft] = motor[backLeft] = (power + gyroAdj - encoderAdj);
+		motor[frontRight] = motor[backRight] = (power - gyroAdj + encoderAdj);
 		if(abs(error) < 50 && moveStartTimer == 0)
 		{
 			moveStartTimer = 1;
