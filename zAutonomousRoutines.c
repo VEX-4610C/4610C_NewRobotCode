@@ -60,28 +60,32 @@ void mobileandcone(int wall, int sh)
 	startTask(WATCHDOG);
 	startTask(autoStacker);
 
-	chainBarSetpoint = 2000;
+	chainBarSetpoint = 1750;
 	mobileDown();
 	doubleSetpoint = 0;
 	rollerSetpoint = 25;
 	SensorValue[gyro] = 0;
-	degmove(48 + sh*4);
-
+	degmove(48 + sh*2);
+	chainBarSetpoint = 2100;
+	wait1Msec(150);
 	rollerSetpoint = rollerOut;
 	mobileUp();
+	gyroturn(SensorValue[gyro], 1);
 	SensorValue[gyro] = 0;
 	rollerSetpoint = rollerIn;
 	chainBarSetpoint = chainBarDown;
 	chainBarSetpoint = chainBarIntake+50;
 	wait1Msec(100);
 	setAllMotors(127);
-	wait1Msec(300);
+	wait1Msec(200);
 	setAllMotors(0);
-	wait1Msec(500);
+	wait1Msec(350);
+	gyroturn(SensorValue[gyro], 1);
+	SensorValue[gyro] = 0;
 }
 void mobileGoalTenAuto(int wall, int sh)
 {
-	mobileandcone(wall, sh);
+	mobileandcone(wall, sh*2);
 	int turnMult = (wall == LEFT ? 1 : -1);
 	activateAutoStacker = 1;
 	if(sh)
@@ -118,143 +122,162 @@ void mobileGoalTenAuto(int wall, int sh)
 
 		mobileDown();
 		degmove(-10);
+	}
+
 }
 
-	}
+void mobileGoalTwenAuto(int wall)
+{
+	//mobileandcone(wall, 0);
+	doubleSetpoint = 150;
+	SensorValue[gyro] = 0;
+	motor[rollerMotor] = 127;
+	rollerSetpoint = rollerIn;
+	startTask(WATCHDOG);
+	startTask(autoStacker);
 
-	void mobileGoalTwenAuto(int wall)
-	{
-		mobileandcone(wall, 1);
-int turnMult = (wall == LEFT ? 1 : -1);
-		degmove(-54);
-		chainBarSetpoint = chainBarStack;
-		gyroturn(-420 * turnMult, 1);
-		degmove(-22);
-		rollerSetpoint = rollerOut;
-		gyroturn(-850 * turnMult, 1);
-		chainBarSetpoint = 1350;
-		rollerSetpoint = rollerStop;
-		setAllMotors(127);
-		wait1Msec(750);
-		setAllMotors(-12);
-		wait1Msec(25);
-		setAllMotors(0);
-		mobileDown();
-		wait1Msec(100);
-		setAllMotors(127);
-		wait1Msec(75);
-		setAllMotors(0);
-		setAllMotors(-127);
-		wait1Msec(150);
-		mobileGoalSetpoint = mobileGoalUp;
-		wait1Msec(500);
-		setAllMotors(0);
-	}
+	chainBarSetpoint = 1750;
+	mobileDown();
+	doubleSetpoint = 0;
+	rollerSetpoint = 25;
+	SensorValue[gyro] = 0;
+	degmove(48);
+	chainBarSetpoint = 2100;
+	wait1Msec(150);
+	rollerSetpoint = rollerOut;
+	mobileUp();
+	gyroturn(SensorValue[gyro], 1);
+
+	int turnMult = (wall == LEFT ? 1 : -1);
+	degmove(-46);
+	chainBarSetpoint = chainBarStack;
+	gyroturn(-420 * turnMult, 1);
+	degmove(-20);
+	rollerSetpoint = rollerOut;
+	gyroturn(-855 * turnMult, 1);
+	chainBarSetpoint = 1350;
+	rollerSetpoint = rollerStop;
+	setAllMotors(127);
+	wait1Msec(750);
+	setAllMotors(-12);
+	wait1Msec(25);
+	setAllMotors(0);
+	mobileDown();
+	wait1Msec(100);
+	setAllMotors(127);
+	wait1Msec(75);
+	setAllMotors(0);
+	setAllMotors(-127);
+	wait1Msec(150);
+	mobileGoalSetpoint = mobileGoalUp;
+	wait1Msec(500);
+	setAllMotors(0);
+}
 
 
-	void programmingSkills()
-	{
-		int HalfTurn = 1725;
-		doubleSetpoint = 150;
-		SensorValue[gyro] = 0;
-		motor[rollerMotor] = 127;
-		rollerSetpoint = rollerIn;
-		startTask(WATCHDOG);
-		startTask(autoStacker);
-		chainBarSetpoint = 2000;
-		mobileDown();
-		doubleSetpoint = 0;
-		rollerSetpoint = 25;
-		SensorValue[gyro] = 0;
-		degmove(54);
-		rollerSetpoint = rollerOut;
-		mobileUp();
-		rollerSetpoint = rollerStop;
-		chainBarSetpoint = 1400;
-		gyroturn(HalfTurn, 1);
-		degmove(45);
-		mobileDown();
+void programmingSkills()
+{
+	int HalfTurn = 1725;
+	doubleSetpoint = 150;
+	SensorValue[gyro] = 0;
+	motor[rollerMotor] = 127;
+	rollerSetpoint = rollerIn;
+	startTask(WATCHDOG);
+	startTask(autoStacker);
+	chainBarSetpoint = 2000;
+	mobileDown();
+	doubleSetpoint = 0;
+	rollerSetpoint = 25;
+	SensorValue[gyro] = 0;
+	degmove(54);
+	rollerSetpoint = rollerOut;
+	mobileUp();
+	rollerSetpoint = rollerStop;
+	chainBarSetpoint = 1400;
+	gyroturn(HalfTurn, 1);
+	degmove(45);
+	mobileDown();
 
-		degmove(-45);
-		mobileUp();
-		gyroturn(HalfTurn/2, 0);
-		mobileDown();
-		degmove(35);
-		mobileUp();
-		gyroturn(-HalfTurn/2, 1);
-		degmove(35);
-		gyroturn(-HalfTurn/2, 1);
-		degmove(22);
-		gyroturn(HalfTurn/2, 1);
-		setAllMotors(127);
-		wait1Msec(700);
-		setAllMotors(-12);
-		wait1Msec(25);
-		setAllMotors(0);
-		mobileDown();
-		wait1Msec(100);
-		setAllMotors(127);
-		wait1Msec(75);
-		setAllMotors(0);
-		mobileUp();
-		degmove(-30);
+	degmove(-45);
+	mobileUp();
+	gyroturn(HalfTurn/2, 0);
+	mobileDown();
+	degmove(35);
+	mobileUp();
+	gyroturn(-HalfTurn/2, 1);
+	degmove(35);
+	gyroturn(-HalfTurn/2, 1);
+	degmove(22);
+	gyroturn(HalfTurn/2, 1);
+	setAllMotors(127);
+	wait1Msec(700);
+	setAllMotors(-12);
+	wait1Msec(25);
+	setAllMotors(0);
+	mobileDown();
+	wait1Msec(100);
+	setAllMotors(127);
+	wait1Msec(75);
+	setAllMotors(0);
+	mobileUp();
+	degmove(-30);
 
-		gyroturn(-HalfTurn/2, 0);
-		degmove(-35);
-		gyroturn(-HalfTurn/4, 0);
-		setAllMotors(-63);
-		wait1Msec(250);
-		setAllMotors(0);
-		wait1Msec(500);
-		degmove(40);
-		gyroturn(-HalfTurn/4, 0);
-		mobileDown();
-		degmove(40);
-		mobileUp();
-		degmove(35);
-		gyroturn(HalfTurn/2, 1);
-		degmove(22);
-		gyroturn(HalfTurn/2, 1);
-		setAllMotors(127);
-		wait1Msec(700);
-		setAllMotors(-12);
-		wait1Msec(25);
-		setAllMotors(0);
-		mobileDown();
-		wait1Msec(100);
-		setAllMotors(127);
-		wait1Msec(75);
-		setAllMotors(0);
-		mobileUp();
-		degmove(-30);
-		gyroturn(-3*HalfTurn/4, 0);
-		degmove(120);
+	gyroturn(-HalfTurn/2, 0);
+	degmove(-35);
+	gyroturn(-HalfTurn/4, 0);
+	setAllMotors(-63);
+	wait1Msec(250);
+	setAllMotors(0);
+	wait1Msec(500);
+	degmove(40);
+	gyroturn(-HalfTurn/4, 0);
+	mobileDown();
+	degmove(40);
+	mobileUp();
+	degmove(35);
+	gyroturn(HalfTurn/2, 1);
+	degmove(22);
+	gyroturn(HalfTurn/2, 1);
+	setAllMotors(127);
+	wait1Msec(700);
+	setAllMotors(-12);
+	wait1Msec(25);
+	setAllMotors(0);
+	mobileDown();
+	wait1Msec(100);
+	setAllMotors(127);
+	wait1Msec(75);
+	setAllMotors(0);
+	mobileUp();
+	degmove(-30);
+	gyroturn(-3*HalfTurn/4, 0);
+	degmove(120);
 
-	}
+}
 
-	void disruptAuto()
-	{
-		degmove(-200);
-	}
-	void stationaryAuto()
-	{
-				doubleSetpoint = 150;
-		SensorValue[gyro] = 0;
-		motor[rollerMotor] = 127;
-		rollerSetpoint = rollerIn;
-		startTask(WATCHDOG);
-		doubleSetpoint = 600;
-		chainBarSetpoint = 1800;
-wait1Msec(200);
-while(!doubleDone) { wait1Msec(20); }
-degmove(27);
-doubleSetpoint = 300;
-wait1Msec(300);
-rollerSetpoint = rollerOut;
-wait1Msec(500);
-doubleSetpoint = 600;
-wait1Msec(250);
-degmove(-10);
-doubleSetpoint = 0;
-rollerSetpoint = rollerStop;
+void disruptAuto()
+{
+	degmove(-200);
+}
+void stationaryAuto()
+{
+	doubleSetpoint = 150;
+	SensorValue[gyro] = 0;
+	motor[rollerMotor] = 127;
+	rollerSetpoint = rollerIn;
+	startTask(WATCHDOG);
+	doubleSetpoint = 600;
+	chainBarSetpoint = 1800;
+	wait1Msec(200);
+	while(!doubleDone) { wait1Msec(20); }
+	degmove(27);
+	doubleSetpoint = 300;
+	wait1Msec(300);
+	rollerSetpoint = rollerOut;
+	wait1Msec(500);
+	doubleSetpoint = 600;
+	wait1Msec(250);
+	degmove(-10);
+	doubleSetpoint = 0;
+	rollerSetpoint = rollerStop;
 }

@@ -524,9 +524,9 @@ void gyroturn(float degrees, int mG)
 {
 	degrees = degrees;
 	SensorValue[gyro] = 0;
-	float kP = mG ? 0.18 : 0.11;
+	float kP = mG ? 0.165 : 0.11;
 	float kI = 0.02;
-	float kD = 0.01;
+	float kD = 0.03;
 	int turnDone = 0;
 	int turnStartTimer, turnEndTime;
 	int error, power;
@@ -539,14 +539,19 @@ void gyroturn(float degrees, int mG)
 		dedt = (error - lastError) / (time1[T3] - lastTime);
 		totalError += dedt;
 		power = (error * kP) + (totalError * kI / (time1[T3] - startTime)) + (dedt * kD);
-		motor[frontLeft] = motor[backLeft] = power;
-		motor[frontRight] = motor[backRight] = -power;
+		motor[frontLeft] = motor[backLeft] = power + 35;
+		motor[frontRight] = motor[backRight] = -power - 35;
 		if(abs(error) < 50 && !turnStartTimer)
 		{
 			turnStartTimer = 1;
 			turnEndTime = time1[T3] + 250;
 		}
 		else if(abs(power) < 30 && !turnStartTimer)
+		{
+			turnStartTimer = 1;
+			turnEndTime = time1[T3] + 250;
+	}
+		else if(abs(time1[T3] - startTime) < 150  && degrees < 100 && !turnStartTimer)
 		{
 			turnStartTimer = 1;
 			turnEndTime = time1[T3] + 250;
@@ -572,20 +577,20 @@ void degmove(int degrees)
 	degrees *= 25;
 	float kP = 0.27;
 	float kI = 0;
-	float kD = 0;
+	float kD = 0.01;
 	float gyroKP = 0;
-	float encoderkP = 0.5;
+	float encoderkP = 0;
 	int moveDone = 0;
 	int moveStartTimer, moveEndTime;
 	int error, power;
-	int totalError, lastError = degrees - nMotorEncoder[frontLeft], lastTime = time1[T3]-1;
+	int totalError, lastError = degrees - nMotorEncoder[frontRight], lastTime = time1[T3]-1;
 	int startTime = time1[T3]-1;
 	float dedt;
 	int gyroAdj;
 	int encoderAdj;
 	while(!moveDone)
 	{
-		error = degrees - nMotorEncoder[frontLeft];
+		error = degrees - nMotorEncoder[frontRight];
 		dedt = (error - lastError) / (time1[T3] - lastTime);
 		totalError += dedt;
 		power = (error * kP) + (totalError * kI) + (dedt * kD);
