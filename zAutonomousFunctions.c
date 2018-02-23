@@ -539,8 +539,8 @@ void gyroturn(float degrees, int mG)
 		dedt = (error - lastError) / (time1[T3] - lastTime);
 		totalError += dedt;
 		power = (error * kP) + (totalError * kI / (time1[T3] - startTime)) + (dedt * kD);
-		motor[frontLeft] = motor[backLeft] = power + 35;
-		motor[frontRight] = motor[backRight] = -power - 35;
+		motor[frontLeft] = motor[backLeft] = power + 35*sign(power);
+		motor[frontRight] = motor[backRight] = -power - 35*sign(power);
 		if(abs(error) < 50 && !turnStartTimer)
 		{
 			turnStartTimer = 1;
