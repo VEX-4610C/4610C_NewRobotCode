@@ -10,7 +10,7 @@
 #define doubleKD 0.02
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {150, 150, 150, 300, 450, 550, 600, 700, 830, 900,
+const int doubleStackUp[15] = {75, 150, 150, 300, 450, 550, 600, 700, 830, 900,
 	1000, 1150, 1200, 1250, 1275};
 const int doubleStationary[8] = {80, 80, 160, 300, 400, 500, 600, 700};
 int doubleSetpoint = doubleDown;
@@ -20,7 +20,7 @@ int doubleStackLoader = 0;
 int doublePIDActive = 1;
 int finishStack = 0;
 
-#define mobileGoalDown 3400
+#define mobileGoalDown 3450
 #define mobileGoalUp 1200
 #define mobileKP 0.3
 #define mobileKI 0
@@ -524,9 +524,9 @@ void gyroturn(float degrees, int mG)
 {
 	degrees = degrees;
 	SensorValue[gyro] = 0;
-	float kP = mG ? 0.165 : 0.11;
+	float kP = mG ? 0.135 : 0.09;
 	float kI = 0.02;
-	float kD = 0.03;
+	float kD = 0.01;
 	int turnDone = 0;
 	int turnStartTimer, turnEndTime;
 	int error, power;
@@ -575,9 +575,9 @@ void degmove(int degrees)
 	nMotorEncoder[frontLeft] = 0;
 	nMotorEncoder[frontRight] = 0;
 	degrees *= 25;
-	float kP = 0.27;
+	float kP = 0.24;
 	float kI = 0;
-	float kD = 0.01;
+	float kD = 0.02;
 	float gyroKP = 0;
 	float encoderkP = 0;
 	int moveDone = 0;
@@ -596,17 +596,17 @@ void degmove(int degrees)
 		power = (error * kP) + (totalError * kI) + (dedt * kD);
 		gyroAdj = SensorValue[gyro] * gyroKP;
 		encoderAdj = (nMotorEncoder[frontLeft] - nMotorEncoder[frontRight]) * encoderkP;
-		motor[frontLeft] = motor[backLeft] = (power + gyroAdj - encoderAdj);
-		motor[frontRight] = motor[backRight] = (power - gyroAdj + encoderAdj);
+		motor[frontLeft] = motor[backLeft] = (power * .85);
+		motor[frontRight] = motor[backRight] = (power);
 		if(abs(error) < 50 && moveStartTimer == 0)
 		{
 			moveStartTimer = 1;
-			moveEndTime = time1[T3] + 350;
+			moveEndTime = time1[T3] + 200;
 		}
 		else if(abs(power) < 20 && moveStartTimer == 0)
 		{
 			moveStartTimer = 1;
-			moveEndTime = time1[T3] + 350;
+			moveEndTime = time1[T3] + 200;
 		}
 		if(abs(error) > 51 && abs(power) > 21)
 		{

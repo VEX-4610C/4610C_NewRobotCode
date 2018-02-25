@@ -35,7 +35,7 @@
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 1, TEST = 8; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST = 7; // Manual Autonomous Test Controls
 void pre_auton()
 {
 	nMotorEncoder[frontLeft] = 0;
