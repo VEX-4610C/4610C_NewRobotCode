@@ -1,18 +1,19 @@
 //CONFIG PARAMETERS
 #define doubleDown 0
-#define doubleIntake 150
-#define doublePreload 425
-#define doublePreloadIntake 400
-#define doubleMobileGoal 250
-#define doubleFixedGoal 650
-#define doubleKP 1.1
+#define doubleIntake 100
+#define doublePreload 275
+#define doublePreloadIntake 300
+#define doubleMobileGoal 100
+#define doubleFixedGoal 450
+#define doubleKP 0.9
 #define doubleKI 0
-#define doubleKD 0.02
+#define doubleKD 0.05
+#define doubleA 1
+#define doubleB 1.1
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {75, 150, 150, 300, 450, 550, 600, 700, 830, 900,
-	1000, 1150, 1200, 1250, 1275};
-const int doubleStationary[8] = {80, 80, 160, 300, 400, 500, 600, 700};
+const int doubleStackUp[15] = {100, 94, 125, 188, 281, 344, 375, 438, 519, 563, 625, 719, 750, 781, 797};
+const int doubleStationary[8] = {50, 50, 100, 188, 250, 313, 375, 438};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
 int doubleDone = 0;
@@ -29,16 +30,16 @@ int mobileGoalSetpoint = mobileGoalUp;
 int mobileDone = 0;
 int mobilePIDActive = 1;
 
-#define chainBarUp 150
-#define chainBarDown 2500
-#define chainBarIntake 3500
-#define chainBarPreload 2350
-#define chainBarStack 600
-#define chainBarPassPos 2500
-#define chainBarKP 0.085
+#define chainBarUp 3500
+#define chainBarDown 700
+#define chainBarIntake 450
+#define chainBarPreload 1500
+#define chainBarStack 4500
+#define chainBarPassPos 800
+#define chainBarKP 0.01
 #define chainBarKI 0
-#define chainBarKD 0.023
-#define chainBarB 0.85
+#define chainBarKD 0.03
+#define chainBarB 0.8
 #define chainBarC 1.075
 #define chainBarSensor chainBarPot
 int chainBarSetpoint = chainBarUp;
@@ -72,6 +73,7 @@ task WATCHDOG
 	// DR4B PID Controller
 	pos_PID doublePID;
 	pos_PID_InitController(&doublePID, doubleSensor, doubleKP, doubleKI, doubleKD);
+	pos_PID_Activate2DOF(&doublePID, doubleA, doubleB);
 	// Chain Bar PID Controller
 	pos_PID chainbarPID;
 	pos_PID_InitController(&chainbarPID, chainBarSensor, chainBarKP, chainBarKI, chainBarKD);
@@ -212,11 +214,17 @@ task autoStacker
 			{
 				if(doubleStackLoader)
 				{
-					chainBarSetpoint += 850;
+					doubleSetpoint = doublePreload + 100;
+					while(nMotorEncoder[doubleLeft] < 300)
+					{
+
+					}
+					chainBarSetpoint = chainBarPreload;
 					rollerSetpoint = rollerIn;
-					while(SensorValue[chainBarPot] < 2000 && nMotorEncoder[doubleLeft] < 450) { wait1Msec(20); }
-					doubleSetpoint -= 150;
-					wait1Msec(650);
+					doubleSetpoint -= 300;
+					chainBarSetpoint -= 1000;
+					wait1Msec(550);
+
 				}
 				rollerSetpoint = rollerHold;
 				if(!doubleStackLoader)
@@ -236,7 +244,7 @@ task autoStacker
 			}
 			else if(innerState == 2)
 			{
-				if(nMotorEncoder[doubleLeft] > (doubleStackUp[currentStacked] - 125))
+				if(nMotorEncoder[doubleLeft] > (doubleStackUp[currentStacked] - 250))
 				{
 					chainBarSetpoint = chainBarStack;
 					innerState++;
@@ -244,7 +252,7 @@ task autoStacker
 			}
 			else if(innerState == 3)
 			{
-				if((SensorValue[chainBarPot] < 1550 || chainBarDone) && abs(doubleError) < 150)
+				if((SensorValue[chainBarPot] > 2500 || chainBarDone) && abs(doubleError) < 150)
 				{
 					if((currentStacked == (11-minusOnes) && doubleStackLoader) || finishStack)
 					{
@@ -253,13 +261,15 @@ task autoStacker
 					}
 					else
 					{
-						wait1Msec(175);
+						if(doubleStackLoader == 1 && currentStacked == 0)
+							wait1Msec(300);
+						wait1Msec(100);
 						doubleSetpoint -= 235;
 						rollerSetpoint = rollerOut;
-						wait1Msec(300);
+						wait1Msec(250);
 						rollerSetpoint = rollerStop;
 						doubleSetpoint += 350;
-						wait1Msec(200);
+						wait1Msec(100);
 						innerState++;
 					}
 				}
@@ -288,7 +298,7 @@ task autoStacker
 			}
 			else if(innerState == 5)
 			{
-				if(SensorValue[chainBarPot] > 1600 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
+				if(SensorValue[chainBarPot] < 2300 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
 				{
 					if(doubleStackLoader)
 					{
@@ -311,6 +321,8 @@ task autoStacker
 			}
 			lastAutostacker = 1;
 		}
+		// Mobile Above
+		// Stationary BELOW
 		else if(activateStationaryMobile && currentStacked > 3 && currentStationary < 7)
 		{
 			if(innerState == 0)
@@ -511,16 +523,16 @@ task batLevel
 {
 	while(1)
 	{
-		batteryOneLevel = nImmediateBatteryLevel;
+		/*batteryOneLevel = nImmediateBatteryLevel;
 		batteryTwoLevel = (int)((float)SensorValue[ peStatus ] * 5.48); // if wrong try 3.636
 		displayLCDString(0, 0, "Cortex BL ");
 		displayLCDNumber(0, 10, batteryOneLevel, 4);
 		displayLCDString(0, 0, "PrwrEx BL ");
-		displayLCDNumber(0, 10, batteryTwoLevel, 4);
+		displayLCDNumber(0, 10, batteryTwoLevel, 4);*/
 		wait1Msec(25);
 	}
 }
-void gyroturn(float degrees, int mG)
+void gyroturnPID(float degrees, int mG)
 {
 	degrees = degrees;
 	SensorValue[gyro] = 0;
@@ -569,6 +581,38 @@ void gyroturn(float degrees, int mG)
 		wait1Msec(75);
 	}
 }
+void straighten()
+{
+	int degrees = SensorValue[gyro];
+	SensorValue[gyro] = 0;
+	int absdegs = abs(degrees);
+	while(abs(absdegs - SensorValue[gyro]) < 40)
+	{
+		motor[frontLeft]  = motor[backLeft]  =  40 * sign(degrees);
+		motor[frontRight] = motor[backRight] = -40 * sign(degrees);
+	}
+	motor[frontLeft]  = motor[backLeft]  = -20 * sign(degrees);
+	motor[frontRight] = motor[backRight] =  20 * sign(degrees);
+	wait1Msec(150);
+	motor[frontLeft]  = motor[backLeft]  = 0;
+	motor[frontRight] = motor[backRight] = 0;
+}
+void gyroturnBang(int degrees)
+{
+	degrees = degrees;
+	SensorValue[gyro] = 0;
+	int absdegs = abs(degrees);
+	while(abs(absdegs - SensorValue[gyro]) < 100)
+	{
+		motor[frontLeft]  = motor[backLeft]  =  120 * sign(degrees);
+		motor[frontRight] = motor[backRight] = -120 * sign(degrees);
+	}
+	motor[frontLeft]  = motor[backLeft]  = -20 * sign(degrees);
+	motor[frontRight] = motor[backRight] =  20 * sign(degrees);
+	wait1Msec(150);
+	motor[frontLeft]  = motor[backLeft]  = 0;
+	motor[frontRight] = motor[backRight] = 0;
+}
 void degmove(int degrees)
 {
 	SensorValue[gyro] = 0;
@@ -594,11 +638,13 @@ void degmove(int degrees)
 		dedt = (error - lastError) / (time1[T3] - lastTime);
 		totalError += dedt;
 		power = (error * kP) + (totalError * kI) + (dedt * kD);
-		gyroAdj = SensorValue[gyro] * gyroKP;
+		gyroAdj = SensorValue[gyro] * gyroKP * sign(power);
 		encoderAdj = (nMotorEncoder[frontLeft] - nMotorEncoder[frontRight]) * encoderkP;
-		motor[frontLeft] = motor[backLeft] = (power * .85);
-		motor[frontRight] = motor[backRight] = (power);
-		if(abs(error) < 50 && moveStartTimer == 0)
+
+		if((time1[T3] - startTime) > 0)
+			motor[frontLeft] = motor[backLeft] = (power + gyroAdj);
+		motor[frontRight] = motor[backRight] = (power - gyroAdj);
+		if(abs(error) < 75 && moveStartTimer == 0)
 		{
 			moveStartTimer = 1;
 			moveEndTime = time1[T3] + 200;
@@ -624,6 +670,12 @@ void degmove(int degrees)
 		lastTime = time1[T3];
 		wait1Msec(75);
 	}
+}
+void gyroturn(int degrees, int mg)
+{
+	gyroturnBang(degrees);
+	if(0)
+		gyroturnPID(degrees, 1);
 }
 task setUpChainBar()
 {

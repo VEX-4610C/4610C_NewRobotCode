@@ -11,7 +11,7 @@
 #pragma config(Motor,  port4,           doubleLeft,    tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_3)
 #pragma config(Motor,  port5,           chainbar,      tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port6,           doubleRight,   tmotorVex393_MC29, openLoop)
-#pragma config(Motor,  port7,           rollerMotor,   tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port7,           rollerMotor,   tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port8,           frontLeft,     tmotorVex393_MC29, openLoop, encoderPort, I2C_2)
 #pragma config(Motor,  port9,           backRight,     tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port10,          frontRight,    tmotorVex393_HBridge, openLoop, encoderPort, I2C_1)
@@ -35,7 +35,7 @@
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 1, TEST = 7; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST = 0; // Manual Autonomous Test Controls
 void pre_auton()
 {
 	nMotorEncoder[frontLeft] = 0;

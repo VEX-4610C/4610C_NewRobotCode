@@ -4,10 +4,14 @@
 #define RIGHT 1
 void testDegmove()
 {
-	degmove(24);
-	wait1Msec(250);
-	degmove(-48);
-	wait1Msec(250);
+	degmove(60);
+	wait1Msec(100);
+	straighten();
+	wait1Msec(750);
+	degmove(-36);
+	wait1Msec(100);
+	straighten();
+	wait1Msec(750);
 	degmove(24);
 }
 void testSmallGyroturn()
@@ -51,40 +55,21 @@ wait1Msec(200);									    \
 rollerSetpoint = rollerStop
 
 #define setAllMotors(x) motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = (x)
+// Autons to Write for Worlds
+/*
+1 - 7/9/11 Pt
+2 - 22/24 Pt
+3 - mobilegoal, cone on mobile, pick up second cone, place mg in 5, place cone on stationary
+4 - Stationary then Defense
+all started from facing the
 
-void mobileandcone(int wall, int sh)
+FUNCTIONS:
+2 - Get Mobile Goal + 1/2 Cones
+*/
+
+void mobileandcone(int wall, int cones)
 {
-	doubleSetpoint = 150;
-	SensorValue[gyro] = 0;
-	motor[rollerMotor] = 127;
-	rollerSetpoint = rollerIn;
-	startTask(WATCHDOG);
-	startTask(autoStacker);
 
-	chainBarSetpoint = 1750;
-	mobileDown();
-	doubleSetpoint = 0;
-	rollerSetpoint = 25;
-	SensorValue[gyro] = 0;
-	degmove(48 + sh*2);
-	chainBarSetpoint = 2100;
-	wait1Msec(100);
-	rollerSetpoint = rollerOut;
-	mobileUp();
-	gyroturn(SensorValue[gyro], 1);
-	SensorValue[gyro] = 0;
-	wait1Msec(75);
-	rollerSetpoint = rollerIn;
-	chainBarSetpoint = chainBarDown;
-	chainBarSetpoint = chainBarIntake;
-	wait1Msec(50);
-	setAllMotors(127);
-	wait1Msec(350);
-		chainBarSetpoint = chainBarIntake+100;
-	setAllMotors(0);
-	wait1Msec(150);
-	gyroturn(SensorValue[gyro], 1);
-	SensorValue[gyro] = 0;
 }
 void mobileGoalTenAuto(int wall, int sh)
 {
@@ -109,7 +94,6 @@ doubleSetpoint = 150;
 	gyroturn(SensorValue[gyro], 1);
 	SensorValue[gyro] = 0;
 	wait1Msec(75);
-	int turnMult = (wall == LEFT ? 1 : -1);
 	degmove(-35);
 	gyroturn(1800, 1);
 	setAllMotors(0);
@@ -141,7 +125,6 @@ doubleSetpoint = 150;
 	gyroturn(SensorValue[gyro], 1);
 	SensorValue[gyro] = 0;
 	wait1Msec(75);
-	int turnMult = (wall == LEFT ? 1 : -1);
 	degmove(-45);
 	chainBarSetpoint = chainBarStack;
 	gyroturn(420, 1);
