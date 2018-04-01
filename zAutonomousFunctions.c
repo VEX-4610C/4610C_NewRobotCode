@@ -214,13 +214,22 @@ task autoStacker
 			{
 				if(doubleStackLoader)
 				{
-					rollerSetpoint = rollerIn;
-					doubleSetpoint = doublePreload - 150;
+					doubleSetpoint = doublePreload + 100;
+					while(nMotorEncoder[doubleLeft] < 300)
+					{
+
+					}
 					chainBarSetpoint = chainBarPreload;
-					wait1Msec(300);
+					rollerSetpoint = rollerIn;
+					doubleSetpoint -= 300;
+					chainBarSetpoint -= 1000;
+					wait1Msec(550);
+
 				}
 				rollerSetpoint = rollerHold;
-				if(doubleStackLoader)
+				if(!doubleStackLoader)
+					chainBarSetpoint = chainBarPassPos;
+				else
 					chainBarSetpoint = chainBarPreload;
 				innerState++;
 			}
@@ -243,7 +252,7 @@ task autoStacker
 			}
 			else if(innerState == 3)
 			{
-				if(chainBarDone && abs(doubleError) < 150)
+				if((SensorValue[chainBarPot] > 2500 || chainBarDone) && abs(doubleError) < 150)
 				{
 					if((currentStacked == (11-minusOnes) && doubleStackLoader) || finishStack)
 					{
@@ -252,65 +261,125 @@ task autoStacker
 					}
 					else
 					{
-						doubleSetpoint -= 125;
+						if(doubleStackLoader == 1 && currentStacked == 0)
+							wait1Msec(300);
+						wait1Msec(100);
+						doubleSetpoint -= 235;
 						rollerSetpoint = rollerOut;
-						wait1Msec(150);
-
-						if(doubleStackLoader) // If Preloading, only go down if intake will be above loader
-						{
-							if(currentStacked < 5)
-								doubleSetpoint = doublePreload;
-							else
-								chainBarSetpoint = chainBarDown;
-						}
-						else // Otherwise, always go down
-						{
-							chainBarSetpoint = chainBarDown;
-						}
-
-						if(doubleStackLoader) // if preloading, go to preload height
-							doubleSetpoint = doublePreload;
-						else
-							doubleSetpoint = 150;
+						wait1Msec(250);
+						rollerSetpoint = rollerStop;
+						doubleSetpoint += 350;
+						wait1Msec(100);
+						innerState++;
 					}
-					innerState += 2;
 				}
 			}
-		}
-		else if(innerState == 4)
-		{
-			if(1)
+			else if(innerState == 4)
 			{
+				if(1)
+				{
+					if(doubleStackLoader)
+					{
+						if(currentStacked < 5)
+						{
+							doubleSetpoint = doublePreload;
+						}
+						else
+						{
+							chainBarSetpoint = chainBarPreload;
+						}
+					}
+					else
+					{
+						chainBarSetpoint = chainBarDown;
+					}
+					innerState++;
+				}
+			}
+			else if(innerState == 5)
+			{
+				if(SensorValue[chainBarPot] < 2300 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
+				{
+					if(doubleStackLoader)
+					{
+						doubleSetpoint = doublePreload;
+						chainBarSetpoint = chainBarPreload;
+						if(vexRT[Btn6U])
+						{
+							rollerSetpoint = rollerIn;
+						}
+					}
+					else
+					{
+						doubleSetpoint = doubleDown;
+					}
+					activateAutoStacker = 0;
+					activateStationaryMobile = 0;
+					currentStacked++;
+					innerState = 0;
+				}
+			}
+			lastAutostacker = 1;
+		}
+		// Mobile Above
+		// Stationary BELOW
+		else if(activateStationaryMobile && currentStacked > 3 && currentStationary < 7)
+		{
+			if(innerState == 0)
+			{
+				if(currentStationary != 0)
+				{
+					chainBarSetpoint = 2200;
+					doubleSetpoint += 200;
+					wait1Msec(200);
+				}
+				doubleSetpoint = doubleStackUp[currentStacked];
 				innerState++;
 			}
-		}
-		else if(innerState == 5)
-		{
-			if(SensorValue[chainBarPot] < 2300 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
+			else if(innerState == 1)
 			{
-				if(doubleStackLoader)
+				if(abs(doubleError) < 175)
 				{
-					doubleSetpoint = doublePreload;
-					chainBarSetpoint = chainBarPreload;
-					if(vexRT[Btn6U])
-					{
-						rollerSetpoint = rollerIn;
-					}
+					chainBarSetpoint = chainBarStack;
+					innerState++;
 				}
-				else
-				{
-					doubleSetpoint = 150;
-				}
-				activateAutoStacker = 0;
-				activateStationaryMobile = 0;
-				currentStacked++;
-				innerState = 0;
 			}
+			else if(innerState == 2)
+			{
+				if(SensorValue[chainBarPot] < 1475 || chainBarDone)
+				{
+					doubleSetpoint -= 300;
+					wait1Msec(350);
+					rollerSetpoint = rollerIn;
+					wait1Msec(400);
+					rollerSetpoint = rollerHold;
+					innerState ++;
+				}
+			}
+			else if(innerState == 3)
+			{
+				doubleSetpoint += 250;
+				innerState++;
+			}
+			else if(innerState == 4)
+			{
+				if(doubleDone)
+				{
+					wait1Msec(150);
+					chainBarSetpoint = chainBarPreload;
+					wait1Msec(250);
+					doubleSetpoint = doubleFixedGoal + doubleStationary[currentStationary];
+					activateAutoStacker = 0;
+					activateStationaryMobile = 0;
+					currentStacked--;
+					currentStationary++;
+					innerState = 0;
+				}
+			}
+			lastAutostacker = 1;
 		}
-		lastAutostacker = 1;
+		wait1Msec(50);
 	}
-	// Mobile Above
-	// Stationary BELOW
 }
 
 // LCD Display Code
@@ -324,37 +393,37 @@ static  char r_arr_str[4] = { RIGHT_ARROW, RIGHT_ARROW, RIGHT_ARROW, 0};
 
 TControllerButtons getLcdButtons()
 {
-TVexReceiverState   competitionState = vexCompetitionState;
-TControllerButtons  buttons;
+	TVexReceiverState   competitionState = vexCompetitionState;
+	TControllerButtons  buttons;
 
-// This function will block until either
-// 1. A button is pressd on the LCD
-//    If a button is pressed when the function starts then that button
-//    must be released before a new button is detected.
-// 2. Robot competition state changes
+	// This function will block until either
+	// 1. A button is pressd on the LCD
+	//    If a button is pressed when the function starts then that button
+	//    must be released before a new button is detected.
+	// 2. Robot competition state changes
 
-// Wait for all buttons to be released
-while( nLCDButtons != kButtonNone ) {
-	// check competition state, bail if it changes
-	if( vexCompetitionState != competitionState )
-		return( kButtonNone );
-	wait1Msec(10);
-}
+	// Wait for all buttons to be released
+	while( nLCDButtons != kButtonNone ) {
+		// check competition state, bail if it changes
+		if( vexCompetitionState != competitionState )
+			return( kButtonNone );
+		wait1Msec(10);
+	}
 
-// block until an LCD button is pressed
-do  {
-	// we use a copy of the lcd buttons to avoid their state changing
-	// between the test and returning the status
-	buttons = nLCDButtons;
+	// block until an LCD button is pressed
+	do  {
+		// we use a copy of the lcd buttons to avoid their state changing
+		// between the test and returning the status
+		buttons = nLCDButtons;
 
-	// check competition state, bail if it changes
-	if( vexCompetitionState != competitionState )
-		return( kButtonNone );
+		// check competition state, bail if it changes
+		if( vexCompetitionState != competitionState )
+			return( kButtonNone );
 
-	wait1Msec(10);
-} while( buttons == kButtonNone );
+		wait1Msec(10);
+	} while( buttons == kButtonNone );
 
-return( buttons );
+	return( buttons );
 }
 
 static int MyAutonomous = -1;
@@ -367,84 +436,84 @@ static int MyAutonomous = -1;
 
 void LcdAutonomousSet( int value, bool select = false )
 {
-// Cleat the lcd
-clearLCDLine(0);
-clearLCDLine(1);
+	// Cleat the lcd
+	clearLCDLine(0);
+	clearLCDLine(1);
 
-// Display the selection arrows
-displayLCDString(1,  0, l_arr_str);
-displayLCDString(1, 13, r_arr_str);
+	// Display the selection arrows
+	displayLCDString(1,  0, l_arr_str);
+	displayLCDString(1, 13, r_arr_str);
 
-// Save autonomous mode for later if selected
-if(select)
-	MyAutonomous = value;
+	// Save autonomous mode for later if selected
+	if(select)
+		MyAutonomous = value;
 
-// If this choice is selected then display ACTIVE
-if( MyAutonomous == value )
-	displayLCDString(1, 5, "ACTIVE");
-else
-	displayLCDString(1, 5, "select");
+	// If this choice is selected then display ACTIVE
+	if( MyAutonomous == value )
+		displayLCDString(1, 5, "ACTIVE");
+	else
+		displayLCDString(1, 5, "select");
 
-// Show the autonomous names
-switch(value) {
-case    0:
-	displayLCDString(0, 0, "MG 10 Zone");
-	break;
-case    1:
-	displayLCDString(0, 0, "MG 20 WallLeft");
-	break;
-case    2:
-	displayLCDString(0, 0, "MG 20 WallRight");
-	break;
-case    3:
-	displayLCDString(0, 0, "Blocked Auto");
-	break;
-case    4:
-	displayLCDString(0, 0, "Programming Skills");
-	break;
-case    5:
-	displayLCDString(0, 0, "No Auto Run");
-	break;
-default:
-	displayLCDString(0, 0, "SCREAM AT ALEX");
-	break;
-}
+	// Show the autonomous names
+	switch(value) {
+	case    0:
+		displayLCDString(0, 0, "MG 10 Zone");
+		break;
+	case    1:
+		displayLCDString(0, 0, "MG 20 WallLeft");
+		break;
+	case    2:
+		displayLCDString(0, 0, "MG 20 WallRight");
+		break;
+	case    3:
+		displayLCDString(0, 0, "Blocked Auto");
+		break;
+	case    4:
+		displayLCDString(0, 0, "Programming Skills");
+		break;
+	case    5:
+		displayLCDString(0, 0, "No Auto Run");
+		break;
+	default:
+		displayLCDString(0, 0, "SCREAM AT ALEX");
+		break;
+	}
 }
 
 void LcdAutonomousSelection()
 {
-TControllerButtons  button;
-int  choice = 0;
+	TControllerButtons  button;
+	int  choice = 0;
 
-// Turn on backlight
-bLCDBacklight = true;
+	// Turn on backlight
+	bLCDBacklight = true;
 
-// diaplay default choice
-LcdAutonomousSet(0);
+	// diaplay default choice
+	LcdAutonomousSet(0);
 
-while( bIfiRobotDisabled )
-{
-	// this function blocks until button is pressed
-	button = getLcdButtons();
+	while( bIfiRobotDisabled )
+	{
+		// this function blocks until button is pressed
+		button = getLcdButtons();
 
-	// Display and select the autonomous routine
-	if( ( button == kButtonLeft ) || ( button == kButtonRight ) ) {
-		// previous choice
-		if( button == kButtonLeft )
-			if( --choice < 0 ) choice = MAX_CHOICE;
-		// next choice
-		if( button == kButtonRight )
-			if( ++choice > MAX_CHOICE ) choice = 0;
-		LcdAutonomousSet(choice);
+		// Display and select the autonomous routine
+		if( ( button == kButtonLeft ) || ( button == kButtonRight ) ) {
+			// previous choice
+			if( button == kButtonLeft )
+				if( --choice < 0 ) choice = MAX_CHOICE;
+			// next choice
+			if( button == kButtonRight )
+				if( ++choice > MAX_CHOICE ) choice = 0;
+			LcdAutonomousSet(choice);
+		}
+
+		// Select this choice
+		if( button == kButtonCenter )
+			LcdAutonomousSet(choice, true );
+
+		// Don't hog the cpu !
+		wait1Msec(10);
 	}
-
-	// Select this choice
-	if( button == kButtonCenter )
-		LcdAutonomousSet(choice, true );
-
-	// Don't hog the cpu !
-	wait1Msec(10);
-}
 }
 
 
@@ -452,174 +521,174 @@ while( bIfiRobotDisabled )
 int batteryOneLevel, batteryTwoLevel;
 task batLevel
 {
-while(1)
-{
-	/*batteryOneLevel = nImmediateBatteryLevel;
-	batteryTwoLevel = (int)((float)SensorValue[ peStatus ] * 5.48); // if wrong try 3.636
-	displayLCDString(0, 0, "Cortex BL ");
-	displayLCDNumber(0, 10, batteryOneLevel, 4);
-	displayLCDString(0, 0, "PrwrEx BL ");
-	displayLCDNumber(0, 10, batteryTwoLevel, 4);*/
-	wait1Msec(25);
-}
+	while(1)
+	{
+		/*batteryOneLevel = nImmediateBatteryLevel;
+		batteryTwoLevel = (int)((float)SensorValue[ peStatus ] * 5.48); // if wrong try 3.636
+		displayLCDString(0, 0, "Cortex BL ");
+		displayLCDNumber(0, 10, batteryOneLevel, 4);
+		displayLCDString(0, 0, "PrwrEx BL ");
+		displayLCDNumber(0, 10, batteryTwoLevel, 4);*/
+		wait1Msec(25);
+	}
 }
 void gyroturnPID(float degrees, int mG)
 {
-degrees = degrees;
-SensorValue[gyro] = 0;
-float kP = mG ? 0.135 : 0.09;
-float kI = 0.02;
-float kD = 0.01;
-int turnDone = 0;
-int turnStartTimer, turnEndTime;
-int error, power;
-int totalError, lastError = degrees, lastTime = time1[T3]-1;
-int startTime = time1[T3]-1;
-float dedt;
-while(!turnDone)
-{
-	error = degrees + SensorValue[gyro];
-	dedt = (error - lastError) / (time1[T3] - lastTime);
-	totalError += dedt;
-	power = (error * kP) + (totalError * kI / (time1[T3] - startTime)) + (dedt * kD);
-	motor[frontLeft] = motor[backLeft] = power + 35*sign(power);
-	motor[frontRight] = motor[backRight] = -power - 35*sign(power);
-	if(abs(error) < 50 && !turnStartTimer)
+	degrees = degrees;
+	SensorValue[gyro] = 0;
+	float kP = mG ? 0.135 : 0.09;
+	float kI = 0.02;
+	float kD = 0.01;
+	int turnDone = 0;
+	int turnStartTimer, turnEndTime;
+	int error, power;
+	int totalError, lastError = degrees, lastTime = time1[T3]-1;
+	int startTime = time1[T3]-1;
+	float dedt;
+	while(!turnDone)
 	{
-		turnStartTimer = 1;
-		turnEndTime = time1[T3] + 250;
+		error = degrees + SensorValue[gyro];
+		dedt = (error - lastError) / (time1[T3] - lastTime);
+		totalError += dedt;
+		power = (error * kP) + (totalError * kI / (time1[T3] - startTime)) + (dedt * kD);
+		motor[frontLeft] = motor[backLeft] = power + 35*sign(power);
+		motor[frontRight] = motor[backRight] = -power - 35*sign(power);
+		if(abs(error) < 50 && !turnStartTimer)
+		{
+			turnStartTimer = 1;
+			turnEndTime = time1[T3] + 250;
+		}
+		else if(abs(power) < 30 && !turnStartTimer)
+		{
+			turnStartTimer = 1;
+			turnEndTime = time1[T3] + 250;
 	}
-	else if(abs(power) < 30 && !turnStartTimer)
-	{
-		turnStartTimer = 1;
-		turnEndTime = time1[T3] + 250;
+		else if(abs(time1[T3] - startTime) < 150  && degrees < 100 && !turnStartTimer)
+		{
+			turnStartTimer = 1;
+			turnEndTime = time1[T3] + 250;
+		}
+		else if (abs(error) > 50 && abs(power) > 30)
+		{
+			turnStartTimer = 0;
+		}
+		if(turnStartTimer && turnEndTime < time1[T3])
+		{
+			turnDone = 1;
+		}
+		lastError = error;
+		lastTime = time1[T3];
+		wait1Msec(75);
 	}
-	else if(abs(time1[T3] - startTime) < 150  && degrees < 100 && !turnStartTimer)
-	{
-		turnStartTimer = 1;
-		turnEndTime = time1[T3] + 250;
-	}
-	else if (abs(error) > 50 && abs(power) > 30)
-	{
-		turnStartTimer = 0;
-	}
-	if(turnStartTimer && turnEndTime < time1[T3])
-	{
-		turnDone = 1;
-	}
-	lastError = error;
-	lastTime = time1[T3];
-	wait1Msec(75);
-}
 }
 void straighten()
 {
-int degrees = SensorValue[gyro];
-SensorValue[gyro] = 0;
-int absdegs = abs(degrees);
-while(abs(absdegs - SensorValue[gyro]) < 40)
-{
-	motor[frontLeft]  = motor[backLeft]  =  40 * sign(degrees);
-	motor[frontRight] = motor[backRight] = -40 * sign(degrees);
-}
-motor[frontLeft]  = motor[backLeft]  = -20 * sign(degrees);
-motor[frontRight] = motor[backRight] =  20 * sign(degrees);
-wait1Msec(150);
-motor[frontLeft]  = motor[backLeft]  = 0;
-motor[frontRight] = motor[backRight] = 0;
+	int degrees = SensorValue[gyro];
+	SensorValue[gyro] = 0;
+	int absdegs = abs(degrees);
+	while(abs(absdegs - SensorValue[gyro]) < 40)
+	{
+		motor[frontLeft]  = motor[backLeft]  =  40 * sign(degrees);
+		motor[frontRight] = motor[backRight] = -40 * sign(degrees);
+	}
+	motor[frontLeft]  = motor[backLeft]  = -20 * sign(degrees);
+	motor[frontRight] = motor[backRight] =  20 * sign(degrees);
+	wait1Msec(150);
+	motor[frontLeft]  = motor[backLeft]  = 0;
+	motor[frontRight] = motor[backRight] = 0;
 }
 void gyroturnBang(int degrees)
 {
-degrees = degrees;
-SensorValue[gyro] = 0;
-int absdegs = abs(degrees);
-while(abs(absdegs - SensorValue[gyro]) < 100)
-{
-	motor[frontLeft]  = motor[backLeft]  =  120 * sign(degrees);
-	motor[frontRight] = motor[backRight] = -120 * sign(degrees);
-}
-motor[frontLeft]  = motor[backLeft]  = -20 * sign(degrees);
-motor[frontRight] = motor[backRight] =  20 * sign(degrees);
-wait1Msec(150);
-motor[frontLeft]  = motor[backLeft]  = 0;
-motor[frontRight] = motor[backRight] = 0;
+	degrees = degrees;
+	SensorValue[gyro] = 0;
+	int absdegs = abs(degrees);
+	while(abs(absdegs - SensorValue[gyro]) < 100)
+	{
+		motor[frontLeft]  = motor[backLeft]  =  120 * sign(degrees);
+		motor[frontRight] = motor[backRight] = -120 * sign(degrees);
+	}
+	motor[frontLeft]  = motor[backLeft]  = -20 * sign(degrees);
+	motor[frontRight] = motor[backRight] =  20 * sign(degrees);
+	wait1Msec(150);
+	motor[frontLeft]  = motor[backLeft]  = 0;
+	motor[frontRight] = motor[backRight] = 0;
 }
 void degmove(int degrees)
 {
-SensorValue[gyro] = 0;
-nMotorEncoder[frontLeft] = 0;
-nMotorEncoder[frontRight] = 0;
-degrees *= 25;
-float kP = 0.24;
-float kI = 0;
-float kD = 0.02;
-float gyroKP = 0;
-float encoderkP = 0;
-int moveDone = 0;
-int moveStartTimer, moveEndTime;
-int error, power;
-int totalError, lastError = degrees - nMotorEncoder[frontRight], lastTime = time1[T3]-1;
-int startTime = time1[T3]-1;
-float dedt;
-int gyroAdj;
-int encoderAdj;
-while(!moveDone)
-{
-	error = degrees - nMotorEncoder[frontRight];
-	dedt = (error - lastError) / (time1[T3] - lastTime);
-	totalError += dedt;
-	power = (error * kP) + (totalError * kI) + (dedt * kD);
-	gyroAdj = SensorValue[gyro] * gyroKP * sign(power);
-	encoderAdj = (nMotorEncoder[frontLeft] - nMotorEncoder[frontRight]) * encoderkP;
+	SensorValue[gyro] = 0;
+	nMotorEncoder[frontLeft] = 0;
+	nMotorEncoder[frontRight] = 0;
+	degrees *= 25;
+	float kP = 0.24;
+	float kI = 0;
+	float kD = 0.02;
+	float gyroKP = 0;
+	float encoderkP = 0;
+	int moveDone = 0;
+	int moveStartTimer, moveEndTime;
+	int error, power;
+	int totalError, lastError = degrees - nMotorEncoder[frontRight], lastTime = time1[T3]-1;
+	int startTime = time1[T3]-1;
+	float dedt;
+	int gyroAdj;
+	int encoderAdj;
+	while(!moveDone)
+	{
+		error = degrees - nMotorEncoder[frontRight];
+		dedt = (error - lastError) / (time1[T3] - lastTime);
+		totalError += dedt;
+		power = (error * kP) + (totalError * kI) + (dedt * kD);
+		gyroAdj = SensorValue[gyro] * gyroKP * sign(power);
+		encoderAdj = (nMotorEncoder[frontLeft] - nMotorEncoder[frontRight]) * encoderkP;
 
-	if((time1[T3] - startTime) > 0)
-		motor[frontLeft] = motor[backLeft] = (power + gyroAdj);
-	motor[frontRight] = motor[backRight] = (power - gyroAdj);
-	if(abs(error) < 75 && moveStartTimer == 0)
-	{
-		moveStartTimer = 1;
-		moveEndTime = time1[T3] + 200;
+		if((time1[T3] - startTime) > 0)
+			motor[frontLeft] = motor[backLeft] = (power + gyroAdj);
+		motor[frontRight] = motor[backRight] = (power - gyroAdj);
+		if(abs(error) < 75 && moveStartTimer == 0)
+		{
+			moveStartTimer = 1;
+			moveEndTime = time1[T3] + 200;
+		}
+		else if(abs(power) < 20 && moveStartTimer == 0)
+		{
+			moveStartTimer = 1;
+			moveEndTime = time1[T3] + 200;
+		}
+		if(abs(error) > 51 && abs(power) > 21)
+		{
+			moveStartTimer = 0;
+		}
+		if(moveStartTimer && moveEndTime < time1[T3])
+		{
+			moveDone = 1;
+		}
+		if((time1[T3] - startTime) > 5000)
+		{
+			moveDone = 1;
+		}
+		lastError = error;
+		lastTime = time1[T3];
+		wait1Msec(75);
 	}
-	else if(abs(power) < 20 && moveStartTimer == 0)
-	{
-		moveStartTimer = 1;
-		moveEndTime = time1[T3] + 200;
-	}
-	if(abs(error) > 51 && abs(power) > 21)
-	{
-		moveStartTimer = 0;
-	}
-	if(moveStartTimer && moveEndTime < time1[T3])
-	{
-		moveDone = 1;
-	}
-	if((time1[T3] - startTime) > 5000)
-	{
-		moveDone = 1;
-	}
-	lastError = error;
-	lastTime = time1[T3];
-	wait1Msec(75);
-}
 }
 void gyroturn(int degrees, int mg)
 {
-gyroturnBang(degrees);
-if(0)
-	gyroturnPID(degrees, 1);
+	gyroturnBang(degrees);
+	if(0)
+		gyroturnPID(degrees, 1);
 }
 task setUpChainBar()
 {
-chainBarPIDActive = 0;
-motor[chainbar] = -127;
-wait1Msec(1000);
-motor[chainbar] = 127;
-wait1Msec(750);
-motor[chainbar] = 0;
-nMotorEncoder[chainbar] = 0;
-wait1Msec(750);
-chainBarPIDActive = 1;
-chainBarSetupDone = true;
+	chainBarPIDActive = 0;
+	motor[chainbar] = -127;
+	wait1Msec(1000);
+	motor[chainbar] = 127;
+	wait1Msec(750);
+	motor[chainbar] = 0;
+	nMotorEncoder[chainbar] = 0;
+	wait1Msec(750);
+	chainBarPIDActive = 1;
+	chainBarSetupDone = true;
 }
 /*
 Effects of increasing a parameter independently[21][22]

@@ -89,7 +89,7 @@ task usercontrol()
 	int lastManualChainBar = 0;
 	int lastIntakeRoller = 0;
 	chainBarSetpoint = chainBarDown;
-	doubleSetpoint = 150;
+	//doubleSetpoint = 300;
 	while (true)
 	{
 		// Drive Code
@@ -223,12 +223,12 @@ task usercontrol()
 			lastManualChainBar = 0;
 		}
 
-		// Intake
+		// Claw
 		if(vexRT[Btn5D])
 		{
 			rollerSetpoint = rollerIn;
-			chainBarSetpoint = chainBarDown;
-			doubleSetpoint = 0;
+			if(nMotorEncoder[doubleLeft] < 50)
+				chainBarSetpoint = chainBarIntake;
 			lastIntakeRoller = 1;
 		}
 		else if(vexRT[Btn6D])
@@ -240,12 +240,14 @@ task usercontrol()
 		{
 			if(lastIntakeRoller == 1)
 			{
+				if(nMotorEncoder[doubleLeft] < 50)
+					chainBarSetpoint = chainBarDown;
 				rollerSetpoint = rollerHold;
 			}
 			else if(lastIntakeRoller == -1)
 			{
 				rollerSetpoint = rollerStop;
-				doubleSetpoint += 100;
+
 			}
 			lastIntakeRoller = 0;
 		}
