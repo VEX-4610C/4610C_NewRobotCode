@@ -3,7 +3,7 @@
 #define doubleIntake 100
 #define doublePreload 275
 #define doublePreloadIntake 300
-#define doubleMobileGoal 100
+#define doubleMobileGoal 150
 #define doubleFixedGoal 450
 #define doubleKP 0.9
 #define doubleKI 0
@@ -12,7 +12,7 @@
 #define doubleB 1.1
 #define doubleSensor doubleLeft
 #define noLiftAfterDropNum 2
-const int doubleStackUp[15] = {100, 94, 125, 188, 281, 344, 375, 438, 519, 563, 625, 719, 750, 781, 797};
+const int doubleStackUp[15] = {125, 94, 160, 245, 281, 375, 400, 460, 519, 580, 625, 719, 750, 781, 797};
 const int doubleStationary[8] = {50, 50, 100, 188, 250, 313, 375, 438};
 int doubleSetpoint = doubleDown;
 int doubleError = 0;
@@ -21,8 +21,8 @@ int doubleStackLoader = 0;
 int doublePIDActive = 1;
 int finishStack = 0;
 
-#define mobileGoalDown 3450
-#define mobileGoalUp 1200
+#define mobileGoalDown 4100
+#define mobileGoalUp 1815
 #define mobileKP 0.3
 #define mobileKI 0
 #define mobileKD 0
@@ -30,17 +30,17 @@ int mobileGoalSetpoint = mobileGoalUp;
 int mobileDone = 0;
 int mobilePIDActive = 1;
 
-#define chainBarUp 3500
-#define chainBarDown 700
-#define chainBarIntake 450
-#define chainBarPreload 1500
-#define chainBarStack 4500
-#define chainBarPassPos 800
-#define chainBarKP 0.01
+#define chainBarUp 1000
+#define chainBarDown 3350
+#define chainBarIntake 4000
+#define chainBarPreload 2800
+#define chainBarStack 1000
+#define chainBarPassPos 3600
+#define chainBarKP 0.03
 #define chainBarKI 0
-#define chainBarKD 0.03
-#define chainBarB 0.8
-#define chainBarC 1.075
+#define chainBarKD 0.02
+#define chainBarB 1
+#define chainBarC 1
 #define chainBarSensor chainBarPot
 int chainBarSetpoint = chainBarUp;
 int chainBarError = 0;
@@ -214,16 +214,17 @@ task autoStacker
 			{
 				if(doubleStackLoader)
 				{
-					doubleSetpoint = doublePreload + 100;
-					while(nMotorEncoder[doubleLeft] < 300)
+					doubleSetpoint = doublePreload + 50;
+					while(nMotorEncoder[doubleLeft] < 265)
 					{
 
 					}
 					chainBarSetpoint = chainBarPreload;
 					rollerSetpoint = rollerIn;
-					doubleSetpoint -= 300;
-					chainBarSetpoint -= 1000;
-					wait1Msec(550);
+					//chainBarSetpoint -= 1000;
+					doubleSetpoint -= 150;
+					//while(SensorValue[chainBarPot] > 1200) { wait1Msec(20); }
+					wait1Msec(250);
 
 				}
 				rollerSetpoint = rollerHold;
@@ -238,7 +239,7 @@ task autoStacker
 				if(1)
 				{
 					doubleDone = 0;
-					doubleSetpoint = doubleStackUp[currentStacked] + 25;
+					doubleSetpoint = doubleStackUp[currentStacked] ;
 					innerState++;
 				}
 			}
@@ -252,7 +253,7 @@ task autoStacker
 			}
 			else if(innerState == 3)
 			{
-				if((SensorValue[chainBarPot] > 2500 || chainBarDone) && abs(doubleError) < 150)
+				if((SensorValue[chainBarPot] < 1760 || chainBarDone) && abs(doubleError) < 150)
 				{
 					if((currentStacked == (11-minusOnes) && doubleStackLoader) || finishStack)
 					{
@@ -261,14 +262,14 @@ task autoStacker
 					}
 					else
 					{
-						if(doubleStackLoader == 1 && currentStacked == 0)
-							wait1Msec(300);
-						wait1Msec(100);
-						doubleSetpoint -= 235;
+						wait1Msec(50);
+						doubleSetpoint -= 100;
 						rollerSetpoint = rollerOut;
-						wait1Msec(250);
+						if(currentStacked == 0)
+							wait1Msec(75);
+						wait1Msec(300);
 						rollerSetpoint = rollerStop;
-						doubleSetpoint += 350;
+						doubleSetpoint += 140;
 						wait1Msec(100);
 						innerState++;
 					}
@@ -298,7 +299,7 @@ task autoStacker
 			}
 			else if(innerState == 5)
 			{
-				if(SensorValue[chainBarPot] < 2300 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
+				if(SensorValue[chainBarPot] > 2300 || (doubleStackLoader && currentStacked < 5 && abs(doubleError) < 400)) // encoder > 350
 				{
 					if(doubleStackLoader)
 					{
@@ -432,7 +433,7 @@ static int MyAutonomous = -1;
 /*-----------------------------------------------------------------------------*/
 
 // max number of auton choices
-#define MAX_CHOICE  5
+#define MAX_CHOICE  8
 
 void LcdAutonomousSet( int value, bool select = false )
 {
@@ -457,22 +458,31 @@ void LcdAutonomousSet( int value, bool select = false )
 	// Show the autonomous names
 	switch(value) {
 	case    0:
-		displayLCDString(0, 0, "MG 10 Zone");
+		displayLCDString(0, 0, "SEVEN");
 		break;
 	case    1:
-		displayLCDString(0, 0, "MG 20 WallLeft");
+		displayLCDString(0, 0, "NINE");
 		break;
 	case    2:
-		displayLCDString(0, 0, "MG 20 WallRight");
+		displayLCDString(0, 0, "22 LEFT");
 		break;
 	case    3:
-		displayLCDString(0, 0, "Blocked Auto");
+		displayLCDString(0, 0, "22 RIGHT");
 		break;
 	case    4:
-		displayLCDString(0, 0, "Programming Skills");
+		displayLCDString(0, 0, "24 LEFT");
 		break;
 	case    5:
-		displayLCDString(0, 0, "No Auto Run");
+		displayLCDString(0, 0, "24 RIGHT");
+		break;
+	case    6:
+		displayLCDString(0, 0, "STATIONARY");
+		break;
+	case    7:
+		displayLCDString(0, 0, "STAT FIVE");
+		break;
+	case    8:
+		displayLCDString(0, 0, "BLOCK");
 		break;
 	default:
 		displayLCDString(0, 0, "SCREAM AT ALEX");
@@ -671,11 +681,14 @@ void degmove(int degrees)
 		wait1Msec(75);
 	}
 }
-void gyroturn(int degrees, int mg)
+void gyroturn(int degrees)
 {
 	gyroturnBang(degrees);
-	if(0)
-		gyroturnPID(degrees, 1);
+	//gyroturnPID(degrees, 1);
+}
+void gyroturn(int degrees, int mg)
+{
+	gyroturn(degrees);
 }
 task setUpChainBar()
 {

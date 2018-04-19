@@ -6,7 +6,8 @@
 #pragma config(Sensor, I2C_1,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_3,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
-#pragma config(Motor,  port2,           mobileGoal,    tmotorVex393_MC29, openLoop, reversed)
+#pragma config(Motor,  port1,           mgAA,          tmotorVex393_HBridge, openLoop)
+#pragma config(Motor,  port2,           mobileGoal,    tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port3,           backLeft,      tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port4,           doubleLeft,    tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_3)
 #pragma config(Motor,  port5,           chainbar,      tmotorVex393_MC29, openLoop, reversed)
@@ -35,7 +36,7 @@
 #include "zAutonomousFunctions.c"
 #include "zAutonomousRoutines.c"
 
-int RUNTEST = 1, TEST = 0; // Manual Autonomous Test Controls
+int RUNTEST = 1, TEST =11; // Manual Autonomous Test Controls
 void pre_auton()
 {
 	nMotorEncoder[frontLeft] = 0;
@@ -57,23 +58,23 @@ task autonomous()
 	if(RUNTEST == 1 && TEST == 2)
 		testLargeGyroturn();
 	if(MyAutonomous == 0 || (RUNTEST == 1 && TEST == 3))
-		mobileGoalTenAuto(LEFT, 1);
-	if(MyAutonomous == 0 || (RUNTEST == 1 && TEST == 4))
-		mobileGoalTenAuto(RIGHT, 1);
-	if(MyAutonomous == 0 || (RUNTEST == 1 && TEST == 5))
-		mobileGoalTenAuto(LEFT, 0);
-	if(MyAutonomous == 0 || (RUNTEST == 1 && TEST == 6))
-		mobileGoalTenAuto(RIGHT, 0);
-	if(MyAutonomous == 1 || (RUNTEST == 1 && TEST == 7))
-		mobileGoalTwenAuto(LEFT);
-	if(MyAutonomous == 2 || (RUNTEST == 1 && TEST == 8))
-		mobileGoalTwenAuto(RIGHT);
-	if(MyAutonomous == 3 || (RUNTEST == 1 && TEST == 9))
-		disruptAuto();
-	if(MyAutonomous == 4 || (RUNTEST == 1 && TEST == 10))
-		programmingSkills();
-	if(MyAutonomous == 5 || (RUNTEST == 1 && TEST == 11))
+		seven();
+	if(MyAutonomous == 1 || (RUNTEST == 1 && TEST == 4))
+		nine();
+	if(MyAutonomous == 2 || (RUNTEST == 1 && TEST == 5))
+		twentytwo(LEFT);
+	if(MyAutonomous == 3 || (RUNTEST == 1 && TEST == 6))
+		twentytwo(RIGHT);
+	if(MyAutonomous == 4 || (RUNTEST == 1 && TEST == 7))
+		twentyfour(LEFT);
+	if(MyAutonomous == 5 || (RUNTEST == 1 && TEST == 8))
+		twentyfour(RIGHT);
+	if(MyAutonomous == 6 || (RUNTEST == 1 && TEST == 9))
 		stationaryAuto();
+	if(MyAutonomous == 7 || (RUNTEST == 1 && TEST == 10))
+		stationaryPlusFive();
+	if(MyAutonomous == 8 || (RUNTEST == 1 && TEST == 11))
+		disruptAuto();
 	if(RUNTEST == 1 && TEST == 7)
 		startTask(setUpChainBar, 6);
 }
@@ -227,7 +228,7 @@ task usercontrol()
 		if(vexRT[Btn5D])
 		{
 			rollerSetpoint = rollerIn;
-			if(nMotorEncoder[doubleLeft] < 50)
+			if(nMotorEncoder[doubleLeft] < 150)
 				chainBarSetpoint = chainBarIntake;
 			lastIntakeRoller = 1;
 		}
