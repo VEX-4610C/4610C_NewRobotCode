@@ -4,11 +4,11 @@
 #define RIGHT 1
 void testDegmove()
 {
-	degmove(60);
+	degmove(36);
 	wait1Msec(100);
 	straighten();
 	wait1Msec(750);
-	degmove(-36);
+	degmove(-24);
 	wait1Msec(100);
 	straighten();
 	wait1Msec(750);
@@ -54,7 +54,6 @@ chainBarSetpoint = chainBarDown \
 wait1Msec(200);									    \
 rollerSetpoint = rollerStop
 
-#define setAllMotors(x) motor[frontLeft] = motor[frontRight] = motor[backLeft] = motor[backRight] = (x)
 // Autons to Write for Worlds
 /*
 1 - 7/9/11 Pt
@@ -89,41 +88,51 @@ void stationaryAuto()
 }
 void mobileMain()
 {
-	doubleSetpoint = 150;
-	SensorValue[gyro] = 0;
-	motor[rollerMotor] = 127;
-	rollerSetpoint = rollerIn;
+		rollerSetpoint = rollerIn;
 	startTask(WATCHDOG);
-	chainBarSetpoint = 1750;
-	mobileGoalSetpoint = mobileGoalDown;
-	wait1Msec(750);
-	degmove(52);
-	mobileUp();
-	chainBarSetpoint = 1000;
+	doubleSetpoint = 0;
+	chainBarSetpoint = chainBarDown - 500;
+	degmove(15);
+		rollerSetpoint = rollerHold;
+	setAllMotors(0);
+	doubleSetpoint = 150;
+
+	wait1Msec(500)
+
+	mobileDown();
+	//gyroturn(SensorValue[gyro]);
+	degmove(20);
+	mobileGoalSetpoint = mobileGoalUp;
 	wait1Msec(350);
 	rollerSetpoint = rollerOut;
-	wait1Msec(150);
-	chainBarSetpoint = 1500;
+	wait1Msec(350);
+	chainBarSetpoint = chainBarDown - 500;
+	while(!mobileDone) { wait1Msec(20); }
+	gyroturn(SensorValue[gyro]);
 }
 void cone()
 {
-	degmove(4);
+	doubleSetpoint = 0;
+	setAllMotors(127);
+	wait1Msec(275);
+	setAllMotors(0);
 	rollerSetpoint = rollerIn;
-	chainBarSetpoint = 4000;
-	wait1Msec(500);
+	chainBarSetpoint = 4400;
+	wait1Msec(1000);
 	chainBarSetpoint = 1000;
 	wait1Msec(350);
 	rollerSetpoint = rollerOut;
 	wait1Msec(150);
 	chainBarSetpoint = 1500;
 }
-void getBack()
+void getBack(int extra=0)
 {
-	degmove(-45);
+	degmove(-45-extra);
 }
-void fiveZone()
+void fiveZone(int wall)
 {
-	gyroturn(1800);
+	int turnMult = (wall == LEFT ? 1 : -1);
+	gyroturn(1800 * turnMult);
 	mobileDown();
 	degmove(-12);
 }
@@ -150,22 +159,22 @@ void twentyZone(int wall)
 	setAllMotors(-127);
 	wait1Msec(150);
 }
-void seven()
+void seven(int wall)
 {
 	mobileMain();
 	getBack();
-	fiveZone();
+	fiveZone(wall);
 }
-void nine()
+void nine(int wall)
 {
 	mobileMain();
 	cone();
-	getBack();
-	fiveZone();
+	getBack(5);
+	fiveZone(wall);
 }
 void twentytwo(int wall)
 {
-	mobileMain()
+	mobileMain();
 	getBack();
 	twentyZone(wall);
 }
@@ -173,31 +182,32 @@ void twentyfour(int wall)
 {
 	mobileMain();
 	cone();
-	getBack();
+	getBack(5);
 	twentyZone(wall);
 }
 
-void stationaryPlusFive()
+void stationaryPlusFive(int wall)
 {
+	int turnMult = (wall == LEFT ? 1 : -1);
 	stationaryAuto();
-	gyroturn(900);
+	gyroturn(-900 * turnMult);
 	degmove(16);
 	rollerSetpoint = rollerIn;
 	chainBarSetpoint = 4000;
 	wait1Msec(500);
 	chainBarSetpoint = 2000;
 	mobileGoalSetpoint = mobileGoalDown;
-	gyroturn(450);
+	gyroturn(-450 * turnMult);
 	rollerSetpoint = rollerHold;
 	degmove(14);
-	gyroturn(-450);
+	gyroturn(450 * turnMult);
 	degmove(14);
-	gyroturn(-300);
-	gyroturn(300);
+	gyroturn(300 * turnMult);
+	gyroturn(-300 * turnMult);
 	degmove(30);
 	mobileGoalSetpoint = mobileGoalUp;
 	degmove(-40);
-	gyroturn(-1800);
+	gyroturn(1800 * turnMult);
 	mobileDown();
 	degmove(-12);
 }
