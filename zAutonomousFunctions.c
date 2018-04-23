@@ -615,7 +615,7 @@ void straighten()
 	int degrees = SensorValue[gyro];
 	SensorValue[gyro] = 0;
 	int absdegs = abs(degrees);
-	while(abs(absdegs - SensorValue[gyro]) < 40)
+	while(abs(absdegs + SensorValue[gyro]) > 40)
 	{
 		motor[frontLeft]  = motor[backLeft]  =  40 * sign(degrees);
 		motor[frontRight] = motor[backRight] = -40 * sign(degrees);
@@ -649,18 +649,18 @@ void degmove(int degrees)
 	nMotorEncoder[frontRight] = 0;
 	degrees *= 25;
 	float kP = 0.24;
-	float kI = 0;
-	float kD = 0.02;
-	float gyroKP = 0;
-	float encoderkP = 0;
-	int moveDone = 0;
-	int moveStartTimer, moveEndTime;
+	//float kI = 0;
+	//float kD = 0.02;
+	//float gyroKP = 0;
+	//float encoderkP = 0;
+	//int moveDone = 0;
+	//int moveStartTimer, moveEndTime;
 	int error = degrees + nMotorEncoder[frontLeft], power;
-	int totalError, lastError = degrees + nMotorEncoder[frontLeft], lastTime = time1[T3]-1;
-	int startTime = time1[T3]-1;
-	float dedt;
-	int gyroAdj;
-	int encoderAdj;
+	//int totalError, lastError = degrees + nMotorEncoder[frontLeft], lastTime = time1[T3]-1;
+	//int startTime = time1[T3]-1;
+	//float dedt;
+	//int gyroAdj;
+	//int encoderAdj;
 
 	while(abs(error) > 75)
 	{

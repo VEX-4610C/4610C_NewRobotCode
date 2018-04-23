@@ -88,19 +88,16 @@ void stationaryAuto()
 }
 void mobileMain()
 {
-		rollerSetpoint = rollerIn;
+	rollerSetpoint = rollerIn;
 	startTask(WATCHDOG);
 	doubleSetpoint = 0;
 	chainBarSetpoint = chainBarDown - 500;
 	degmove(15);
-		rollerSetpoint = rollerHold;
+	rollerSetpoint = rollerHold;
 	setAllMotors(0);
 	doubleSetpoint = 150;
-
-	wait1Msec(500)
-
+	wait1Msec(250);
 	mobileDown();
-	//gyroturn(SensorValue[gyro]);
 	degmove(20);
 	mobileGoalSetpoint = mobileGoalUp;
 	wait1Msec(350);
@@ -108,7 +105,7 @@ void mobileMain()
 	wait1Msec(350);
 	chainBarSetpoint = chainBarDown - 500;
 	while(!mobileDone) { wait1Msec(20); }
-	gyroturn(SensorValue[gyro]);
+	straighten();
 }
 void cone()
 {
